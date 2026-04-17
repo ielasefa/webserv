@@ -32,5 +32,6 @@ std::vector<std::string> readDirectory(const std::string& path);
 std::string generateAutoIndex(const std::string& requestPath,
                               const std::vector<std::string>& files);
 std::string handleRequest(const std::string& requestPath);
+std::string errorResponse(int code);
 
 #endif

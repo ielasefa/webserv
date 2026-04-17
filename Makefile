@@ -7,7 +7,8 @@ SRC = main.cpp \
 	src/routing.cpp \
 	src/file_serving.cpp \
 	src/autoindex.cpp \
-	src/utils.cpp
+	src/utils.cpp \
+	src/error.cpp
 
 OBJ = $(SRC:.cpp=.o)
 

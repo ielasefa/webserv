@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   routing.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/04/14 19:14:11 by iel-asef          #+#    #+#             */
+/*   Updated: 2026/04/14 19:33:39 by iel-asef         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "webserv.hpp"
 
 std::vector<Location> locations;
@@ -36,12 +48,50 @@ Location matchLocation(const std::string& requestPath)
     return best;
 }
 
+std::string normalizePath(const std::string& path)
+{
+    std::string result;
+    bool lastWasSlash = false;
+
+    if (path.empty() || path[0] != '/')
+        result += '/';
+
+    for (size_t i = 0; i < path.size(); i++)
+    {
+        if (path[i] == '/')
+        {
+            if (!lastWasSlash)
+            {
+                result += '/';
+                lastWasSlash = true;
+            }
+        }
+        else
+        {
+            result += path[i];
+            lastWasSlash = false;
+        }
+    }
+
+    if (result.size() > 1 && result[result.size() - 1] == '/')
+        result.erase(result.size() - 1);
+
+    return result;
+}
+
 std::string buildPath(const std::string& requestPath, const Location& loc)
 {
-    std::string sub = requestPath.substr(loc.path.length());
+    (void)loc; 
 
-    if (sub.empty() || sub == "/")
-        return loc.root + "/index.html";
+    std::string root = "www";
 
-    return loc.root + sub;
+    if (requestPath == "/")
+        return root;
+
+    std::string cleanPath = requestPath;
+
+    if (cleanPath[0] != '/')
+        cleanPath = "/" + cleanPath;
+
+    return root + cleanPath;
 }

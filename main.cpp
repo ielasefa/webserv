@@ -1,10 +1,32 @@
 #include "webserv.hpp"
 
+#include <iostream>
+#include <string>
+
+std::string handleRequest(const std::string& requestPath);
+
 int main()
 {
-	initLocations();
+    std::string path;
 
-	std::cout << handleRequest("/images/") << std::endl;
+    initLocations();
 
-	return 0;
+    std::cout << "===== Webserv Test =====" << std::endl;
+
+    while (true)
+    {
+        std::cout << "\nEnter path (or 'exit'): ";
+        std::getline(std::cin, path);
+
+        if (path == "exit")
+            break;
+
+        std::string response = handleRequest(path);
+
+        std::cout << "\n----- RESPONSE -----\n";
+        std::cout << response << std::endl;
+        std::cout << "--------------------\n";
+    }
+
+    return 0;
 }
