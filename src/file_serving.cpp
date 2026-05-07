@@ -12,78 +12,102 @@
 
 #include "webserv.hpp"
 
-std::string serveFile(const std::string& path)
+static std::string getMimeType(const std::string& path)
 {
-    std::string content = readFile(path);
+    if (path.find(".html") != std::string::npos)
+        return "text/html";
+    if (path.find(".css") != std::string::npos)
+        return "text/css";
+    if (path.find(".js") != std::string::npos)
+        return "application/javascript";
+    if (path.find(".png") != std::string::npos)
+        return "image/png";
+    if (path.find(".jpg") != std::string::npos || path.find(".jpeg") != std::string::npos)
+        return "image/jpeg";
+    if (path.find(".txt") != std::string::npos)
+        return "text/plain";
 
-    if (content.empty())
-        return errorResponse(404);
+    return "text/plain";
+}
+
+static std::string buildResponse(int code,
+                                 const std::string& body,
+                                 const std::string& mime)
+{
     std::string res;
-    res += "HTTP/1.1 200 OK\r\n";
-    res += "Content-Length: " + sizeToString(content.size()) + "\r\n";
-    res += "Content-Type: text/html\r\n";
+
+    res += "HTTP/1.1 " + statusMessage(code) + "\r\n";
+
+    if (!mime.empty())
+        res += "Content-Type: " + mime + "\r\n";
+
+    std::ostringstream ss;
+    ss << body.size();
+
+    res += "Content-Length: " + ss.str() + "\r\n";
     res += "Connection: close\r\n\r\n";
-    res += content;
+
+    res += body;
 
     return res;
 }
+
+std::string serveFile(const std::string& path)
+{
+    if (!isFile(path))
+        return errorResponse(404);
+
+    std::string content = readFile(path);
+
+    return buildResponse(200, content, getMimeType(path));
+}
+
 std::string redirect301(const std::string& newPath)
 {
     std::string res;
+
     res += "HTTP/1.1 301 Moved Permanently\r\n";
     res += "Location: " + newPath + "\r\n";
     res += "Content-Length: 0\r\n";
     res += "Connection: close\r\n\r\n";
+
     return res;
 }
 
 std::string handleRequest(const std::string& requestPath)
 {
-    // 🔴 Security
     if (requestPath.find("..") != std::string::npos)
         return errorResponse(403);
 
-    // 🟢 Normalize
     std::string cleanPath = normalizePath(requestPath);
 
-    // 🟢 Routing
     Location loc = matchLocation(cleanPath);
 
-    // 🟢 Build real path
     std::string path = buildPath(cleanPath, loc);
 
-
-    // 🟢 FILE → serve مباشرة
     if (isFile(path))
         return serveFile(path);
 
-    // 🟢 DIRECTORY
     if (isDirectory(path))
     {
-        // 🔥 Trailing slash redirect
-        if (cleanPath[cleanPath.size() - 1] != '/')
+        if (!cleanPath.empty() && cleanPath[cleanPath.size() - 1] != '/')
             return redirect301(cleanPath + "/");
 
-        // ✔ index.html path safe
         std::string index = path;
-        if (path[path.size() - 1] != '/')
+        if (index[index.size() - 1] != '/')
             index += "/";
         index += "index.html";
 
-        // ✔ serve index if exists
         if (isFile(index))
             return serveFile(index);
 
-        // ❌ autoindex off
         if (!loc.autoindex)
             return errorResponse(403);
 
-        // ✔ autoindex
         std::vector<std::string> files = readDirectory(path);
 
         return generateAutoIndex(cleanPath, files);
     }
 
-    // 🔴 Not found
     return errorResponse(404);
 }

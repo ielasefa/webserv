@@ -12,27 +12,48 @@
 
 #include "webserv.hpp"
 
-
-std::string handleDelete(const std::string& path)
+std::string handleDELETE(const Request& req)
 {
-    if (access(path.c_str(), F_OK) != 0)
+    Location loc = matchLocation(req.path);
+
+    if (!loc.allow_delete)
+        return errorResponse(403);
+
+    std::string cleanPath = normalizePath(req.path);
+
+    if (cleanPath.find("..") != std::string::npos)
+        return errorResponse(403);
+
+    std::string path = buildPath(cleanPath, loc);
+
+    if (!fileExists(path))
         return errorResponse(404);
 
-    if (!isFile(path))
-        return errorResponse(403);
     if (isDirectory(path))
         return errorResponse(403);
+
     if (access(path.c_str(), W_OK) != 0)
         return errorResponse(403);
 
     if (remove(path.c_str()) != 0)
         return errorResponse(500);
 
-    std::string response;
-    response += "HTTP/1.1 204 No Content\r\n";
-    response += "Content-Length: 0\r\n";
-    response += "Connection: close\r\n";
-    response += "\r\n";
+    return buildResponse(204, "", "");
+}
 
-    return response;
+std::string dispatchRequest(const Request& req)
+{
+    if (req.method == "GET")
+        return handleRequest(req.path);
+
+    if (req.method == "POST")
+        return handlePOST(req);
+
+    if (req.method == "DELETE")
+    {
+        std::string path = "www" + req.path;
+        return handleDELETE(req);
+    }
+
+    return errorResponse(405);
 }

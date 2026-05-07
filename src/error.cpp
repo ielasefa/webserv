@@ -32,21 +32,27 @@ static std::string defaultErrorHTML(int code)
     return "<html><body><h1>Unknown Error</h1></body></html>";
 }
 
-
 static std::string statusMessage(int code)
 {
-    if (code == 400)
-        return "400 Bad Request";
-    if (code == 403)
-        return "403 Forbidden";
-    if (code == 404)
-        return "404 Not Found";
-    if (code == 405)
-        return "405 Method Not Allowed";
-    if (code == 500)
-        return "500 Internal Server Error";
-
-    return "500 Internal Server Error";
+    switch (code)
+    {
+        case 400:
+            return "400 Bad Request";
+        case 403:
+            return "403 Forbidden";
+        case 404: 
+            return "404 Not Found";
+        case 405: 
+            return "405 Method Not Allowed";
+        case 411:
+            return "411 Length Required";
+        case 413:
+            return "413 Payload Too Large";
+        case 500:  
+            return "500 Internal Server Error";
+        default: 
+            return "500 Internal Server Error";
+    }
 }
 
 std::string errorResponse(int code)

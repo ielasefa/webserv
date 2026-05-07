@@ -11,11 +11,23 @@
 /* ************************************************************************** */
 
 #include "webserv.hpp"
+#include <sys/stat.h>
 
 bool isFile(const std::string& path)
 {
     struct stat s;
     return (stat(path.c_str(), &s) == 0 && S_ISREG(s.st_mode));
+}
+
+
+bool fileExists(const std::string& path)
+{
+    struct stat s;
+
+    if (stat(path.c_str(), &s) == 0)
+        return true;
+
+    return false;
 }
 
 bool isDirectory(const std::string& path)
@@ -41,3 +53,39 @@ std::string sizeToString(size_t value)
     stream << value;
     return stream.str();
 }
+
+std::string readBody(int fd, size_t contentLength)
+{
+    std::string body;
+    char buffer[1024];
+    size_t total = 0;
+
+    while (total < contentLength)
+    {
+        int bytes = recv(fd, buffer, 1024, 0);
+
+        if (bytes <= 0)
+            break;
+
+        body.append(buffer, bytes);
+        total += bytes;
+    }
+
+    return body;
+}
+
+// std::string getMimeType(const std::string& path)
+// {
+//     if (path.find(".html") != std::string::npos)
+//         return "text/html";
+//     if (path.find(".css") != std::string::npos)
+//         return "text/css";
+//     if (path.find(".js") != std::string::npos)
+//         return "application/javascript";
+//     if (path.find(".png") != std::string::npos)
+//         return "image/png";
+//     if (path.find(".jpg") != std::string::npos || path.find(".jpeg") != std::string::npos)
+//         return "image/jpeg";
+
+//     return "text/plain";
+// }
