@@ -32,6 +32,8 @@ struct Location
 
     bool allow_upload;             
     std::string upload_path;       
+    
+    bool allow_post;               
 
     bool allow_delete;             
     size_t client_max_body_size;  
@@ -62,12 +64,12 @@ std::string serveFile(const std::string& path);
 std::vector<std::string> readDirectory(const std::string& path);
 std::string generateAutoIndex(const std::string& requestPath,
                               const std::vector<std::string>& files);
-std::string handleRequest(const Request& request);
+std::string handleRequest(const Request& request , const Location& loc);
 std::string errorResponse(int code);
 std::string readBody(int fd, size_t contentLength);
 std::string normalizePath(const std::string& path);
-std::string handlePOST(const Request& request);
-std::string handleDELETE(const Request& request);
+std::string handlePOST(const Request& request , const Location& loc);
+std::string handleDELETE(const Request& request ,const Location& loc);
 bool fileExists(const std::string& path);
 static std::string buildResponse(int code,
                                  const std::string& body,
@@ -75,6 +77,7 @@ static std::string buildResponse(int code,
 std::string getMimeType(const std::string& path);
 std::string redirect301(const std::string& newPath);
 std::string statusMessage(int code);
+bool isMethodAllowed(const Location& loc, const std::string& method);
 
 
 

@@ -11,11 +11,8 @@
 /* ************************************************************************** */
 
 #include "webserv.hpp"
-
-std::string handleDELETE(const Request& req)
+std::string handleDELETE(const Request& req, const Location& loc)
 {
-    Location loc = matchLocation(req.path);
-
     if (!loc.allow_delete)
         return errorResponse(403);
 
@@ -43,17 +40,19 @@ std::string handleDELETE(const Request& req)
 
 std::string dispatchRequest(const Request& req)
 {
+    Location loc = matchLocation(req.path);
+
+    if (!isMethodAllowed(loc, req.method))
+        return errorResponse(405);
+
     if (req.method == "GET")
-        return handleRequest(req.path);
+        return handleRequest(req, loc);
 
     if (req.method == "POST")
-        return handlePOST(req);
+        return handlePOST(req, loc);
 
     if (req.method == "DELETE")
-    {
-        std::string path = "www" + req.path;
-        return handleDELETE(req);
-    }
+        return handleDELETE(req, loc);
 
     return errorResponse(405);
 }

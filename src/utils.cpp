@@ -74,6 +74,16 @@ std::string readBody(int fd, size_t contentLength)
     return body;
 }
 
+bool isMethodAllowed(const Location& loc, const std::string& method)
+{
+    for (size_t i = 0; i < loc.allowed_methods.size(); i++)
+    {
+        if (loc.allowed_methods[i] == method)
+            return true;
+    }
+    return false;
+}
+
 // std::string getMimeType(const std::string& path)
 // {
 //     if (path.find(".html") != std::string::npos)
