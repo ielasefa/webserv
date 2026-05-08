@@ -71,9 +71,9 @@ std::string normalizePath(const std::string& path);
 std::string handlePOST(const Request& request , const Location& loc);
 std::string handleDELETE(const Request& request ,const Location& loc);
 bool fileExists(const std::string& path);
-static std::string buildResponse(int code,
-                                 const std::string& body,
-                                 const std::string& mime);
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime);
 std::string getMimeType(const std::string& path);
 std::string redirect301(const std::string& newPath);
 std::string statusMessage(int code);

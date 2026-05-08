@@ -12,46 +12,6 @@
 
 #include "webserv.hpp"
 
-static std::string getMimeType(const std::string& path)
-{
-    if (path.find(".html") != std::string::npos)
-        return "text/html";
-    if (path.find(".css") != std::string::npos)
-        return "text/css";
-    if (path.find(".js") != std::string::npos)
-        return "application/javascript";
-    if (path.find(".png") != std::string::npos)
-        return "image/png";
-    if (path.find(".jpg") != std::string::npos || path.find(".jpeg") != std::string::npos)
-        return "image/jpeg";
-    if (path.find(".txt") != std::string::npos)
-        return "text/plain";
-
-    return "text/plain";
-}
-
-static std::string buildResponse(int code,
-                                 const std::string& body,
-                                 const std::string& mime)
-{
-    std::string res;
-
-    res += "HTTP/1.1 " + statusMessage(code) + "\r\n";
-
-    if (!mime.empty())
-        res += "Content-Type: " + mime + "\r\n";
-
-    std::ostringstream ss;
-    ss << body.size();
-
-    res += "Content-Length: " + ss.str() + "\r\n";
-    res += "Connection: close\r\n\r\n";
-
-    res += body;
-
-    return res;
-}
-
 std::string serveFile(const std::string& path)
 {
     if (!isFile(path))
@@ -74,14 +34,12 @@ std::string redirect301(const std::string& newPath)
     return res;
 }
 
-std::string handleRequest(const std::string& requestPath)
+std::string handleRequest(const Request& request, const Location& loc)
 {
-    if (requestPath.find("..") != std::string::npos)
+    if (request.path.find("..") != std::string::npos)
         return errorResponse(403);
 
-    std::string cleanPath = normalizePath(requestPath);
-
-    Location loc = matchLocation(cleanPath);
+    std::string cleanPath = normalizePath(request.path);
 
     std::string path = buildPath(cleanPath, loc);
 
@@ -96,7 +54,10 @@ std::string handleRequest(const std::string& requestPath)
         std::string index = path;
         if (index[index.size() - 1] != '/')
             index += "/";
-        index += "index.html";
+        if (!loc.index.empty())
+            index += loc.index;
+        else
+            index += "index.html";
 
         if (isFile(index))
             return serveFile(index);

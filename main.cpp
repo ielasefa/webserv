@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-std::string handleRequest(const std::string& requestPath);
+std::string dispatchRequest(const Request& req);
 
 int main()
 {
@@ -21,7 +21,10 @@ int main()
         if (path == "exit")
             break;
 
-        std::string response = handleRequest(path);
+        Request req;
+        req.method = "GET";
+        req.path = path;
+        std::string response = dispatchRequest(req);
 
         std::cout << "\n----- RESPONSE -----\n";
         std::cout << response << std::endl;
