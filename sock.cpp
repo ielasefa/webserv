@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <string>
+#include <string.h>
 #include <netinet/in.h>
 
 void	add_epoll(int epfd, int fd)
@@ -22,7 +23,7 @@ void	multiplexing(int sfd)
 	while (1)
 	{
 		int e = epoll_wait(epfd, events, 2, -1);
-		std::cout << e;
+		// std::cout << e;
 		for (int i = 0; i < e; i++)
 		{
 			int fd = events[i].data.fd;
@@ -33,10 +34,20 @@ void	multiplexing(int sfd)
 			}
 			else
 			{
-				char buffer[1024] = "";
-				int len = read(fd, buffer, sizeof(buffer) - 1);
+				// handling request hna
+
+				char buffer[447] = "";
+				std::string	req_buf;
+
+				int len = recv(fd, buffer, sizeof(buffer), 0);
+				req_buf += buffer;
+				// int len = read(fd, buffer.c_str(), sizeof(buffer) - 1);
+				if (req_buf.find("\r\n\r\n") != std::string::npos)
+					std::cout << "---Yes---" << std::endl;
 				std::cout << len << std::endl;
-				std::cout << buffer << std::endl;
+				std::cout << strlen(buffer) << std::endl;
+				std::cout << req_buf.size() << std::endl;
+				std::cout << "===================\n" << req_buf << "===================" << std::endl;
 				if (len <= 0)
 				{
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
@@ -44,6 +55,7 @@ void	multiplexing(int sfd)
 				}
 				else
 				{
+					// response mnb3d hna
 					write(fd, "HTTP/1.1 200 OK\n\n<html><body>SAMAYKOM!!!</body></html>", 55);
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					close(fd);
@@ -57,11 +69,14 @@ int	init_socket()
 {
 	int sfd = socket(AF_INET, SOCK_STREAM, 0);
 
+	int	opt = 1;
+	setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // reuse of the port
 	sockaddr_in	addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(3334);
+	addr.sin_port = htons(3334); // hardcoded till we get it from config file
 	addr.sin_addr.s_addr = INADDR_ANY;
-	bind(sfd, (struct sockaddr *)&addr, sizeof(addr));
+	if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		std::cout << "--shit--\n";
 
 	listen(sfd, 4);
 	return (sfd);
