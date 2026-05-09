@@ -1,4 +1,4 @@
-#include "../webserv.hpp"
+#include "webserv.hpp"
 static const int CGI_TIMEOUT = 10;
 
 CGIHandler::CGIHandler(const HttpRequest  &request,

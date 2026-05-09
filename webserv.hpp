@@ -79,10 +79,10 @@ struct HttpResponse
     }
 };
 
-#include "config/LocationConfig.hpp"
-#include "config/ServerConfig.hpp"
-#include "config/ConfigParser.hpp"
-#include "cgi/CGIHandler.hpp"
+#include "LocationConfig.hpp"
+#include "ServerConfig.hpp"
+#include "ConfigParser.hpp"
+#include "CGIHandler.hpp"
 
 
 #endif

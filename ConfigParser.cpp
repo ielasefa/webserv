@@ -1,4 +1,4 @@
-#include "../webserv.hpp"
+#include "webserv.hpp"
 
 ConfigParser::ConfigParser(const std::string &filename)
     : _filename(filename), _pos(0)
