@@ -54,6 +54,7 @@ extern std::vector<Location> locations;
 void initLocations();
 Location matchLocation(const std::string& requestPath);
 std::string buildPath(const std::string& requestPath, const Location& loc);
+std::string buildPath(const std::string& requestPath, const Location& loc, bool appendIndex);
 
 bool isFile(const std::string& path);
 bool isDirectory(const std::string& path);
@@ -65,7 +66,7 @@ std::vector<std::string> readDirectory(const std::string& path);
 std::string generateAutoIndex(const std::string& requestPath,
                               const std::vector<std::string>& files);
 std::string handleRequest(const Request& request , const Location& loc);
-std::string errorResponse(int code);
+std::string errorResponse(int code, const std::string& allowHeader = "");
 std::string readBody(int fd, size_t contentLength);
 std::string normalizePath(const std::string& path);
 std::string handlePOST(const Request& request , const Location& loc);
@@ -73,11 +74,13 @@ std::string handleDELETE(const Request& request ,const Location& loc);
 bool fileExists(const std::string& path);
 std::string buildResponse(int code,
                           const std::string& body,
-                          const std::string& mime);
+                          const std::string& mime,
+                          const std::vector<std::string>& extraHeaders = std::vector<std::string>());
 std::string getMimeType(const std::string& path);
 std::string redirect301(const std::string& newPath);
 std::string statusMessage(int code);
 bool isMethodAllowed(const Location& loc, const std::string& method);
+std::string buildAllowHeader(const Location& loc);
 
 
 

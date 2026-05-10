@@ -84,6 +84,23 @@ bool isMethodAllowed(const Location& loc, const std::string& method)
     return false;
 }
 
+std::string buildAllowHeader(const Location& loc)
+{
+    if (loc.allowed_methods.empty())
+        return "";
+
+    std::string header = "Allow: ";
+
+    for (size_t i = 0; i < loc.allowed_methods.size(); i++)
+    {
+        if (i > 0)
+            header += ", ";
+        header += loc.allowed_methods[i];
+    }
+
+    return header;
+}
+
 // std::string getMimeType(const std::string& path)
 // {
 //     if (path.find(".html") != std::string::npos)

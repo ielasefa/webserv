@@ -56,20 +56,33 @@ void initLocations()
     locations.push_back(l3);
 }
 
-Location matchLocation(const std::string& requestPath)
+Location matchLocation(const std::string& path)
 {
-    Location best = locations[0];
+    if (locations.empty())
+        return Location();
+
+    Location best;
+    bool matched = false;
 
     for (size_t i = 0; i < locations.size(); i++)
     {
         const Location& loc = locations[i];
+        bool isMatch = false;
 
-        if (requestPath == loc.path || requestPath.find(loc.path + "/") == 0)
+        if (loc.path == "/")
+            isMatch = true;
+        else if (path == loc.path || path.find(loc.path + "/") == 0)
+            isMatch = true;
+
+        if (isMatch && (!matched || loc.path.length() > best.path.length()))
         {
-            if (loc.path.length() > best.path.length())
-                best = loc;
+            best = loc;
+            matched = true;
         }
     }
+
+    if (!matched)
+        return locations[0];
 
     return best;
 }
@@ -107,16 +120,39 @@ std::string normalizePath(const std::string& path)
 
 std::string buildPath(const std::string& requestPath, const Location& loc)
 {
+    return buildPath(requestPath, loc, false);
+}
+
+std::string buildPath(const std::string& requestPath, const Location& loc, bool appendIndex)
+{
     std::string clean = requestPath;
 
-    if (clean == "/")
-        return loc.root + "/" + loc.index;
-
-    if (clean.find(loc.path) == 0)
-        clean = clean.substr(loc.path.length());
+    if (loc.path != "/" && (clean == loc.path || clean.find(loc.path + "/") == 0))
+        clean.erase(0, loc.path.length());
+    else if (loc.path == "/" && !clean.empty() && clean[0] == '/')
+        clean.erase(0, 1);
 
     if (clean.empty())
         clean = "/";
 
-    return loc.root + clean;
+    if (clean[0] != '/')
+        clean = "/" + clean;
+
+    std::string root = loc.root;
+    if (!root.empty() && root[root.size() - 1] == '/' && clean[0] == '/')
+        root.erase(root.size() - 1);
+
+    std::string base = root + clean;
+
+    if (appendIndex)
+    {
+        if (!base.empty() && base[base.size() - 1] != '/')
+            base += "/";
+        if (!loc.index.empty())
+            base += loc.index;
+        else
+            base += "index.html";
+    }
+
+    return base;
 }

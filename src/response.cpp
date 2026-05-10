@@ -32,7 +32,10 @@ std::string getMimeType(const std::string& path)
     return "application/octet-stream";
 }
 
-std::string buildResponse(int code, const std::string& body, const std::string& mime)
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime,
+                          const std::vector<std::string>& extraHeaders)
 {
     std::string res;
 
@@ -44,10 +47,8 @@ std::string buildResponse(int code, const std::string& body, const std::string& 
     res += "Content-Length: " + toStringSize(body.size()) + "\r\n";
     res += "Connection: close\r\n";
 
-    // NOTE: 405 should ideally list actual allowed methods for the location.
-    // Keeping this here only to avoid inconsistent 405 responses.
-    if (code == 405)
-        res += "Allow: GET, POST, DELETE\r\n";
+    for (size_t i = 0; i < extraHeaders.size(); i++)
+        res += extraHeaders[i] + "\r\n";
 
     res += "\r\n";
     res += body;

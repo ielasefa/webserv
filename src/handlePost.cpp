@@ -42,6 +42,11 @@ std::string handlePOST(const Request& req, const Location& loc)
     if (req.path.find("..") != std::string::npos)
         return errorResponse(403);
 
+    std::string cleanPath = normalizePath(req.path);
+
+    if (cleanPath.find("..") != std::string::npos)
+        return errorResponse(403);
+
     std::map<std::string, std::string>::const_iterator it =
         req.headers.find("Content-Length");
 
@@ -50,10 +55,26 @@ std::string handlePOST(const Request& req, const Location& loc)
 
     size_t contentLength = std::atoi(it->second.c_str());
 
+    if (loc.client_max_body_size > 0 && contentLength > loc.client_max_body_size)
+        return errorResponse(413);
+
     if (req.body.size() != contentLength)
         return errorResponse(400);
 
-    std::string basePath = buildPath(req.path, loc);
+    std::string baseDir;
+    if (loc.allow_upload)
+    {
+        if (loc.upload_path.empty())
+            return errorResponse(500);
+        baseDir = loc.upload_path;
+    }
+    else
+    {
+        baseDir = buildPath(cleanPath, loc);
+    }
+
+    if (loc.allow_upload && !isDirectory(baseDir))
+        return errorResponse(500);
 
     std::map<std::string, std::string>::const_iterator ct =
         req.headers.find("Content-Type");
@@ -71,7 +92,13 @@ std::string handlePOST(const Request& req, const Location& loc)
             filename.find("..") != std::string::npos)
             return errorResponse(403);
 
-        std::string path = basePath + "/" + filename;
+        std::string path = baseDir;
+        if (!path.empty() && path[path.size() - 1] != '/')
+            path += "/";
+        path += filename;
+
+        if (isDirectory(path))
+            return errorResponse(403);
 
         std::ofstream file(path.c_str(), std::ios::binary);
         if (!file.is_open())
@@ -83,7 +110,28 @@ std::string handlePOST(const Request& req, const Location& loc)
         return buildResponse(201, "", "");
     }
 
-    std::ofstream file(basePath.c_str(), std::ios::binary);
+    std::string name;
+    size_t slash = cleanPath.find_last_of('/');
+    if (slash == std::string::npos)
+        name = cleanPath;
+    else
+        name = cleanPath.substr(slash + 1);
+
+    if (name.empty())
+        return errorResponse(400);
+
+    if (name.find("..") != std::string::npos || name.find("/") != std::string::npos)
+        return errorResponse(403);
+
+    std::string target = baseDir;
+    if (!target.empty() && target[target.size() - 1] != '/')
+        target += "/";
+    target += name;
+
+    if (isDirectory(target))
+        return errorResponse(403);
+
+    std::ofstream file(target.c_str(), std::ios::binary);
     if (!file.is_open())
         return errorResponse(500);
 

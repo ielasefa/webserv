@@ -52,18 +52,13 @@ std::string statusMessage(int code)
     return "500 Internal Server Error";
 }
 
-std::string errorResponse(int code)
+std::string errorResponse(int code, const std::string& allowHeader)
 {
     std::string body = defaultErrorHTML(code);
+    std::vector<std::string> headers;
 
-    std::string response;
+    if (!allowHeader.empty())
+        headers.push_back(allowHeader);
 
-    response += "HTTP/1.1 " + statusMessage(code) + "\r\n";
-    response += "Content-Type: text/html\r\n";
-    response += "Content-Length: " + sizeToString(body.size()) + "\r\n";
-    response += "Connection: close\r\n";
-    response += "\r\n";
-    response += body;
-
-    return response;
+    return buildResponse(code, body, "text/html", headers);
 }

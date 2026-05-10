@@ -17,21 +17,30 @@ std::string serveFile(const std::string& path)
     if (!isFile(path))
         return errorResponse(404);
 
+    if (access(path.c_str(), R_OK) != 0)
+        return errorResponse(403);
+
     std::string content = readFile(path);
+
+    if (!content.empty())
+        return buildResponse(200, content, getMimeType(path));
+
+    struct stat s;
+    if (stat(path.c_str(), &s) != 0)
+        return errorResponse(404);
+
+    if (s.st_size > 0)
+        return errorResponse(500);
 
     return buildResponse(200, content, getMimeType(path));
 }
 
 std::string redirect301(const std::string& newPath)
 {
-    std::string res;
+    std::vector<std::string> headers;
+    headers.push_back("Location: " + newPath);
 
-    res += "HTTP/1.1 301 Moved Permanently\r\n";
-    res += "Location: " + newPath + "\r\n";
-    res += "Content-Length: 0\r\n";
-    res += "Connection: close\r\n\r\n";
-
-    return res;
+    return buildResponse(301, "", "", headers);
 }
 
 std::string handleRequest(const Request& request, const Location& loc)
@@ -40,6 +49,10 @@ std::string handleRequest(const Request& request, const Location& loc)
         return errorResponse(403);
 
     std::string cleanPath = normalizePath(request.path);
+    bool hasTrailingSlash = !request.path.empty() && request.path[request.path.size() - 1] == '/';
+
+    if (cleanPath.find("..") != std::string::npos)
+        return errorResponse(403);
 
     std::string path = buildPath(cleanPath, loc);
 
@@ -48,16 +61,10 @@ std::string handleRequest(const Request& request, const Location& loc)
 
     if (isDirectory(path))
     {
-        if (!cleanPath.empty() && cleanPath[cleanPath.size() - 1] != '/')
+        if (!hasTrailingSlash && cleanPath != "/")
             return redirect301(cleanPath + "/");
 
-        std::string index = path;
-        if (index[index.size() - 1] != '/')
-            index += "/";
-        if (!loc.index.empty())
-            index += loc.index;
-        else
-            index += "index.html";
+        std::string index = buildPath(cleanPath, loc, true);
 
         if (isFile(index))
             return serveFile(index);

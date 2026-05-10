@@ -40,19 +40,28 @@ std::string handleDELETE(const Request& req, const Location& loc)
 
 std::string dispatchRequest(const Request& req)
 {
-    Location loc = matchLocation(req.path);
+    std::string cleanPath = normalizePath(req.path);
+    Location loc = matchLocation(cleanPath);
 
-    if (!isMethodAllowed(loc, req.method))
-        return errorResponse(405);
+    if (loc.root.empty() && locations.empty())
+        return errorResponse(500);
 
-    if (req.method == "GET")
-        return handleRequest(req, loc);
+    Request cleanReq = req;
+    cleanReq.path = cleanPath;
 
-    if (req.method == "POST")
-        return handlePOST(req, loc);
+    std::string allowHeader = buildAllowHeader(loc);
 
-    if (req.method == "DELETE")
-        return handleDELETE(req, loc);
+    if (!isMethodAllowed(loc, cleanReq.method))
+        return errorResponse(405, allowHeader);
 
-    return errorResponse(405);
+    if (cleanReq.method == "GET")
+        return handleRequest(cleanReq, loc);
+
+    if (cleanReq.method == "POST")
+        return handlePOST(cleanReq, loc);
+
+    if (cleanReq.method == "DELETE")
+        return handleDELETE(cleanReq, loc);
+
+    return errorResponse(405, allowHeader);
 }

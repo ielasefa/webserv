@@ -57,12 +57,5 @@ std::string generateAutoIndex(const std::string& requestPath,
 
     html += "</ul></body></html>";
 
-    std::string res;
-    res += "HTTP/1.1 200 OK\r\n";
-    res += "Content-Type: text/html\r\n";
-    res += "Content-Length: " + sizeToString(html.size()) + "\r\n";
-    res += "Connection: close\r\n\r\n";
-    res += html;
-
-    return res;
+    return buildResponse(200, html, "text/html");
 }
