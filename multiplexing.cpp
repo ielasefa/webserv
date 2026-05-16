@@ -1,10 +1,4 @@
-#include <sys/socket.h>
-#include <sys/epoll.h>
-#include <unistd.h>
-#include <iostream>
-#include <string>
-#include <string.h>
-#include <netinet/in.h>
+#include "webserv.hpp"
 
 void	add_epoll(int epfd, int fd)
 {
@@ -27,30 +21,35 @@ void	multiplexing(int sfd)
 		for (int i = 0; i < e; i++)
 		{
 			int fd = events[i].data.fd;
+			std::map <int, t_client> clients;
+
 			if (fd == sfd)
 			{
 				int cfd = accept(sfd, NULL, NULL);
+				t_client cl;
+				cl.fd = cfd;
+				clients[cfd] = cl;
 				add_epoll(epfd, cfd);
 			}
 			else
 			{
 				// handling request hna
 
-				char buffer[447] = "";
-				std::string	req_buf;
-
+				char buffer[1024] = "";
 				int len = recv(fd, buffer, sizeof(buffer), 0);
-				req_buf += buffer;
-				// int len = read(fd, buffer.c_str(), sizeof(buffer) - 1);
-				if (req_buf.find("\r\n\r\n") != std::string::npos)
-					std::cout << "---Yes---" << std::endl;
-				std::cout << len << std::endl;
-				std::cout << strlen(buffer) << std::endl;
-				std::cout << req_buf.size() << std::endl;
-				std::cout << "===================\n" << req_buf << "===================" << std::endl;
+				t_client &c = clients[fd];
+				c.req_buffer += buffer;
+
+				// if (c.recv_buffer.find("\r\n\r\n") != std::string::npos)
+				// 	std::cout << "---Yes---" << std::endl;
+				// std::cout << len << std::endl;
+				// std::cout << strlen(buffer) << std::endl;
+				// std::cout << c.recv_buffer.size() << std::endl;
+				std::cout << "===================\n" << c.req_buffer << "===================" << std::endl;
 				if (len <= 0)
 				{
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					clients.erase(fd);
 					close(fd);
 				}
 				else

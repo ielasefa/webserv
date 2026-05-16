@@ -1,4 +1,4 @@
-SRC = sock.cpp
+SRC = multiplexing.cpp
 OBJ = $(SRC:.cpp=.o)
 
 COMPILE = c++
