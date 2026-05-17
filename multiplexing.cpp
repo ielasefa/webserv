@@ -1,5 +1,20 @@
 #include "webserv.hpp"
 
+void	parsing_header(std::string req_buffer)
+{
+	t_header header;
+	header.first_line = req_buffer.substr(0, req_buffer.find("\r"));
+	header.method = header.first_line.substr(0, header.first_line.find(" "));
+	header.other = header.first_line.substr(header.first_line.find(" ") + 1);
+	header.path = header.other.substr(0, header.other.find(" "));
+	header.version = header.other.substr(header.other.find(" ") + 1);
+
+	std::cout << "===================\n" << "MTHD: " << header.method << std::endl
+			<< "PATH: " << header.path << std::endl << "VRSN: " << header.version
+			<< "\n===================" << std::endl;
+
+}
+
 void	add_epoll(int epfd, int fd)
 {
 	struct epoll_event ev;
@@ -25,7 +40,7 @@ void	multiplexing(int sfd)
 
 			if (fd == sfd)
 			{
-				int cfd = accept(sfd, NULL, NULL);
+				int cfd = accept(sfd, NULL, NULL);/////
 				t_client cl;
 				cl.fd = cfd;
 				clients[cfd] = cl;
@@ -39,13 +54,15 @@ void	multiplexing(int sfd)
 				int len = recv(fd, buffer, sizeof(buffer), 0);
 				t_client &c = clients[fd];
 				c.req_buffer += buffer;
+				parsing_header(c.req_buffer);
 
+				// std::cout << first_line << std::endl;
 				// if (c.recv_buffer.find("\r\n\r\n") != std::string::npos)
 				// 	std::cout << "---Yes---" << std::endl;
 				// std::cout << len << std::endl;
 				// std::cout << strlen(buffer) << std::endl;
 				// std::cout << c.recv_buffer.size() << std::endl;
-				std::cout << "===================\n" << c.req_buffer << "===================" << std::endl;
+				// std::cout << "===================\n" << c.req_buffer << "===================" << std::endl;
 				if (len <= 0)
 				{
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
