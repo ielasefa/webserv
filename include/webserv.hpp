@@ -20,24 +20,27 @@
 #include <csignal>
 
 
-struct Location
+class LocationConfig
 {
-    std::string path;        
-    std::string root;             
+public:
+    std::string path;
 
-    std::string index;             
-    bool autoindex;                
+    std::string root;
+
+    std::string index;
 
     std::vector<std::string> allowed_methods;
 
-    bool allow_upload;             
-    std::string upload_path;       
-    
-    bool allow_post;               
+    bool autoindex;
 
-    bool allow_delete;             
-    size_t client_max_body_size;  
-    std::map<int, std::string> error_pages; 
+    std::string upload_store;
+
+    int         redirect_code;
+    std::string redirect;
+
+    std::map<std::string, std::string> cgi_pass;
+
+    LocationConfig();
 };
 
 struct Request
