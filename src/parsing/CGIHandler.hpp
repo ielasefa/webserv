@@ -1,6 +1,8 @@
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
+#include "webserv.hpp"
+
 #include <string>
 #include <map>
 #include <vector>

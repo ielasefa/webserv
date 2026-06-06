@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/13 19:50:53 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/04/15 11:41:37 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/06/06 13:31:48 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ std::string redirect301(const std::string& newPath)
     return buildResponse(301, "", "", headers);
 }
 
-std::string handleRequest(const Request& request, const Location& loc)
+std::string handleRequest(const Request& request, const LocationConfig& loc)
 {
     if (request.path.find("..") != std::string::npos)
         return errorResponse(403);

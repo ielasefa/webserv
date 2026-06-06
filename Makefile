@@ -3,15 +3,20 @@ NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
 
-SRC =	main.cpp \
-		src/routing.cpp \
-		src/file_serving.cpp \
-		src/autoindex.cpp \
-		src/utils.cpp \
-		src/error.cpp \
-		src/handlePost.cpp \
-		src/handleRequest.cpp \
-		src/response.cpp
+SRC = main.cpp \
+      src/method/routing.cpp \
+      src/method/file_serving.cpp \
+      src/method/autoindex.cpp \
+      src/method/utils.cpp \
+      src/method/error.cpp \
+      src/method/handlePost.cpp \
+      src/method/handleRequest.cpp \
+      src/method/response.cpp \
+      src/parsing/ConfigParser.cpp \
+      src/parsing/ServerConfig.cpp \
+      src/parsing/LocationConfig.cpp \
+      src/parsing/CGIHandler.cpp \
+      src/parsing/webserv.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
@@ -34,10 +39,10 @@ re: fclean all
 
 test: test_config_parser test_integration
 
-test_config_parser: test_config_parser.cpp ConfigParser.cpp ServerConfig.cpp LocationConfig.cpp
+test_config_parser: src/parsing/test_config_parser.cpp src/parsing/ConfigParser.cpp src/parsing/ServerConfig.cpp src/parsing/LocationConfig.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-test_integration: test_integration.cpp ConfigParser.cpp ServerConfig.cpp LocationConfig.cpp CGIHandler.cpp webserv.cpp
+test_integration: src/parsing/test_integration.cpp src/parsing/ConfigParser.cpp src/parsing/ServerConfig.cpp src/parsing/LocationConfig.cpp src/parsing/CGIHandler.cpp src/parsing/webserv.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 test_clean:

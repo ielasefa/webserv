@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/14 19:14:08 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/04/14 19:14:09 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/06/06 13:32:10 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,7 @@ std::string readBody(int fd, size_t contentLength)
     return body;
 }
 
-bool isMethodAllowed(const Location& loc, const std::string& method)
+bool isMethodAllowed(const LocationConfig& loc, const std::string& method)
 {
     for (size_t i = 0; i < loc.allowed_methods.size(); i++)
     {
@@ -84,7 +84,7 @@ bool isMethodAllowed(const Location& loc, const std::string& method)
     return false;
 }
 
-std::string buildAllowHeader(const Location& loc)
+std::string buildAllowHeader(const LocationConfig& loc)
 {
     if (loc.allowed_methods.empty())
         return "";

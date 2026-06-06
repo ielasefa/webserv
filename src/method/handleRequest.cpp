@@ -6,15 +6,15 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/17 13:44:30 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/04/17 13:48:51 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/06/06 14:39:53 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "webserv.hpp"
-std::string handleDELETE(const Request& req, const Location& loc)
+std::string handleDELETE(const Request& req, const LocationConfig& loc)
 {
-    if (!loc.allow_delete)
-        return errorResponse(403);
+    // if (!loc.allow_delete)
+    //     return errorResponse(403);
 
     std::string cleanPath = normalizePath(req.path);
 
@@ -41,9 +41,9 @@ std::string handleDELETE(const Request& req, const Location& loc)
 std::string dispatchRequest(const Request& req)
 {
     std::string cleanPath = normalizePath(req.path);
-    Location loc = matchLocation(cleanPath);
+LocationConfig loc = matchLocation(cleanPath);
 
-    if (loc.root.empty() && locations.empty())
+    if (loc.root.empty() && loc.path.empty())
         return errorResponse(500);
 
     Request cleanReq = req;
@@ -58,7 +58,7 @@ std::string dispatchRequest(const Request& req)
         return handleRequest(cleanReq, loc);
 
     if (cleanReq.method == "POST")
-        return handlePOST(cleanReq, loc);
+        return errorResponse(405, allowHeader);
 
     if (cleanReq.method == "DELETE")
         return handleDELETE(cleanReq, loc);

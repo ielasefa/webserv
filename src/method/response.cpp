@@ -9,7 +9,6 @@ static std::string toStringSize(size_t value)
 
 std::string getMimeType(const std::string& path)
 {
-    // Minimal mapping for the evaluator; extend as needed.
     std::string::size_type dot = path.rfind('.');
     if (dot == std::string::npos)
         return "application/octet-stream";

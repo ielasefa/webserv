@@ -1,5 +1,6 @@
 #include "webserv.hpp"
-static const int CGI_TIMEOUT = 10;
+
+// static const int UNUSED_CGI_TIMEOUT = 10;
 
 CGIHandler::CGIHandler(const HttpRequest  &request,
                        const std::string  &script_path,

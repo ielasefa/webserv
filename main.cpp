@@ -9,7 +9,7 @@ int main()
 {
     std::string path;
 
-    initLocations();
+    // initLocations();
 
     std::cout << "===== Webserv Test =====" << std::endl;
 
