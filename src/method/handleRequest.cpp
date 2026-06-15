@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include "../include/webserv.hpp"
 std::string handleDELETE(const Request& req, const LocationConfig& loc)
 {
     // if (!loc.allow_delete)
@@ -41,7 +41,7 @@ std::string handleDELETE(const Request& req, const LocationConfig& loc)
 std::string dispatchRequest(const Request& req)
 {
     std::string cleanPath = normalizePath(req.path);
-LocationConfig loc = matchLocation(cleanPath);
+    LocationConfig loc = matchLocation(cleanPath);
 
     if (loc.root.empty() && loc.path.empty())
         return errorResponse(500);
