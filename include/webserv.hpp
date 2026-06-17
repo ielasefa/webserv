@@ -29,7 +29,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-
 struct Request
 {
     std::string method;
@@ -39,6 +38,41 @@ struct Request
 };
 
 
+//---------------------- ayoub ----------------------
+
+#include <sys/socket.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <iostream>
+#include <string>
+#include <string.h>
+#include <netinet/in.h>
+#include <map>
+
+typedef struct s_client {
+	int fd;
+	std::string req_buffer;
+	std::string res_buffer;
+}	t_client;
+
+typedef struct s_header
+{
+	std::string first_line;
+	std::string method;
+	std::string path;
+	std::string version;
+	std::string other;
+}	t_header;
+
+int	init_socket();
+void	add_epoll(int epfd, int fd);
+void	multiplexing(int sfd);
+Request	parsing_header(std::string req_buffer);
+
+//---------------------------------------------------
+
+
+std::string dispatchRequest(const Request& req);
 
 void initLocations();
 LocationConfig matchLocation(const std::string& requestPath);

@@ -1,6 +1,7 @@
 #include "webserv.hpp"
+#include "include/webserv.hpp"
 
-void	parsing_header(std::string req_buffer)
+Request	parsing_header(std::string req_buffer)
 {
 	t_header header;
 	header.first_line = req_buffer.substr(0, req_buffer.find("\r"));
@@ -9,10 +10,13 @@ void	parsing_header(std::string req_buffer)
 	header.path = header.other.substr(0, header.other.find(" "));
 	header.version = header.other.substr(header.other.find(" ") + 1);
 
-	std::cout << "===================\n" << "MTHD: " << header.method << std::endl
-			<< "PATH: " << header.path << std::endl << "VRSN: " << header.version
-			<< "\n===================" << std::endl;
-
+	// std::cout << "===================\n" << "MTHD: " << header.method << std::endl
+	// 		<< "PATH: " << header.path << std::endl << "VRSN: " << header.version
+	// 		<< "\n===================" << std::endl;
+	Request req;
+	req.method = header.method;
+	req.path = header.path;
+	return (req);
 }
 
 void	add_epoll(int epfd, int fd)
@@ -49,12 +53,10 @@ void	multiplexing(int sfd)
 			else
 			{
 				// handling request hna
-
 				char buffer[1024] = "";
 				int len = recv(fd, buffer, sizeof(buffer), 0);
 				t_client &c = clients[fd];
 				c.req_buffer += buffer;
-				parsing_header(c.req_buffer);
 
 				if (len <= 0)
 				{
@@ -64,8 +66,10 @@ void	multiplexing(int sfd)
 				}
 				else
 				{
-					// response mnb3d hna
-					write(fd, "HTTP/1.1 200 OK\n\n<html><body>SAMAYKOM!!!</body></html>", 55);
+					// response hna
+					Request req = parsing_header(c.req_buffer);
+					c.res_buffer = dispatchRequest(req);
+					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					close(fd);
 				}
@@ -89,11 +93,4 @@ int	init_socket()
 
 	listen(sfd, 4);
 	return (sfd);
-}
-
-int main()
-{
-	int	sfd = init_socket();
-
-	multiplexing(sfd);
 }
