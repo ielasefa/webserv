@@ -43,12 +43,12 @@ std::string dispatchRequest(const Request& req)
     std::string cleanPath = normalizePath(req.path);
     LocationConfig loc = matchLocation(cleanPath);
 
-    if (loc.root.empty() && loc.path.empty())
-        return errorResponse(500);
-
+    // if (loc.root.empty() && loc.path.empty())
+    //     return errorResponse(500);
+    // Ayoub commented this 7it dima katkhdm
     Request cleanReq = req;
     cleanReq.path = cleanPath;
-
+    // std::cout << "--------\n" << cleanReq.method << "\n-------" << std::endl;
     std::string allowHeader = buildAllowHeader(loc);
 
     if (!isMethodAllowed(loc, cleanReq.method))
