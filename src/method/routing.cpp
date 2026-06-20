@@ -12,7 +12,7 @@
 
 #include "webserv.hpp"
 
-// std::vector<LocationConfig> locations;+
+std::vector<LocationConfig> locations;
 
 // void initLocations()
 // {
@@ -61,12 +61,12 @@ LocationConfig matchLocation(const std::string& path)
     if (locations.empty())
         return LocationConfig();
 
-    ServerConfig best;
+    LocationConfig best;
     bool matched = false;
 
     for (size_t i = 0; i < locations.size(); i++)
     {
-        const ServerConfig& loc = locations[i];
+        const LocationConfig& loc = locations[i];
         bool isMatch = false;
 
         if (loc.path == "/")

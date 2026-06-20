@@ -10,10 +10,11 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include "../../include/webserv.hpp"
 
 std::string serveFile(const std::string& path)
 {
+    std::cout << "hererrerrerer" <<std::endl;
     if (!isFile(path))
         return errorResponse(404);
 

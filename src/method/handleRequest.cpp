@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../include/webserv.hpp"
+#include "../../include/webserv.hpp"
 std::string handleDELETE(const Request& req, const LocationConfig& loc)
 {
     // if (!loc.allow_delete)
@@ -42,26 +42,25 @@ std::string dispatchRequest(const Request& req)
 {
     std::string cleanPath = normalizePath(req.path);
     LocationConfig loc = matchLocation(cleanPath);
-
+    // std::cout << "--------\n" << loc.root << "\n-------" << std::endl;
     // if (loc.root.empty() && loc.path.empty())
     //     return errorResponse(500);
-    // Ayoub commented this 7it dima katkhdm
+    // Ayoub commented this 7it loc khawya
     Request cleanReq = req;
     cleanReq.path = cleanPath;
-    // std::cout << "--------\n" << cleanReq.method << "\n-------" << std::endl;
     std::string allowHeader = buildAllowHeader(loc);
-
     if (!isMethodAllowed(loc, cleanReq.method))
         return errorResponse(405, allowHeader);
 
-    if (cleanReq.method == "GET")
+    if (cleanReq.method == "GET"){
         return handleRequest(cleanReq, loc);
+    }
 
     if (cleanReq.method == "POST")
         return errorResponse(405, allowHeader);
 
     if (cleanReq.method == "DELETE")
         return handleDELETE(cleanReq, loc);
-
+    
     return errorResponse(405, allowHeader);
 }
