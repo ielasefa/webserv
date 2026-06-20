@@ -39,9 +39,8 @@ std::string handleDELETE(const HttpRequest& req, const LocationConfig& loc)
     return buildResponse(204, "", "");
 }
 
-std::string dispatchRequest(const HttpRequest& req)
+std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
 {
-    ServerConfig Serv;
     std::string cleanPath = normalizePath(req.path);
     LocationConfig loc = Serv.matchLocation(cleanPath);
     if (loc.root.empty() && loc.path.empty())

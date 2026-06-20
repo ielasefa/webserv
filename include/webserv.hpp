@@ -91,7 +91,7 @@ struct HttpResponse
 
 //---------------------- ilyas ----------------------
 
-std::string dispatchRequest(const HttpRequest& req);
+std::string dispatchRequest(const HttpRequest& req , const ServerConfig& serv);
 
 LocationConfig matchLocation(const std::string& requestPath);
 std::string buildPath(const std::string& requestPath, const LocationConfig& loc);
@@ -110,7 +110,7 @@ std::string handleRequest(const HttpRequest& request , const LocationConfig& loc
 std::string errorResponse(int code, const std::string& allowHeader = "");
 std::string readBody(int fd, size_t contentLength);
 std::string normalizePath(const std::string& path);
-std::string handlePOST(const HttpRequest& request , ServerConfig& serv);
+std::string handlePOST(const HttpRequest& request , const ServerConfig& serv);
 std::string handleDELETE(const HttpRequest& request ,const LocationConfig& loc);
 bool fileExists(const std::string& path);
 std::string buildResponse(int code,
@@ -153,7 +153,7 @@ typedef struct s_header
 
 int	init_socket();
 void	add_epoll(int epfd, int fd);
-void	multiplexing(int sfd);
+void	multiplexing(int sfd ,const ServerConfig& serv);
 HttpRequest	parsing_header(std::string req_buffer);
 
 //---------------------------------------------------

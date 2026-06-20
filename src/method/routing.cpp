@@ -12,7 +12,7 @@
 
 #include "webserv.hpp"
 
-LocationConfig ServerConfig::matchLocation(const std::string& path)
+LocationConfig ServerConfig::matchLocation(const std::string& path) const
 {
     if (locations.empty())
         return LocationConfig();

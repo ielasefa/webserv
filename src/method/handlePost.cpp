@@ -29,7 +29,7 @@ std::string extractContent(const std::string& body)
     return body.substr(start, end - start);
 }
 
-std::string handlePOST(const HttpRequest& req, ServerConfig& serv)
+std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
 {
     // if (!loc.allow_post)
     //     return errorResponse(403);

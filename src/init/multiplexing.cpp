@@ -26,7 +26,7 @@ void	add_epoll(int epfd, int fd)
 	epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev);
 }
 
-void	multiplexing(int sfd)
+void	multiplexing(int sfd ,const ServerConfig& serv)
 {
 	int epfd = epoll_create(1);
 	add_epoll(epfd, sfd);
@@ -67,7 +67,7 @@ void	multiplexing(int sfd)
 				{
 					// response hna
 					HttpRequest req = parsing_header(c.req_buffer);
-					c.res_buffer = dispatchRequest(req);
+					c.res_buffer = dispatchRequest(req , serv);
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					close(fd);
