@@ -12,51 +12,7 @@
 
 #include "webserv.hpp"
 
-std::vector<LocationConfig> locations;
-
-// void initLocations()
-// {
-//     Location l1;
-//     l1.path = "/";
-//     l1.root = "www";
-//     l1.index = "index.html";
-//     l1.autoindex = false;
-//     l1.allow_post = false;
-//     l1.allow_delete = false;
-//     l1.allow_upload = false;
-//     l1.client_max_body_size = 0;
-//     l1.allowed_methods.push_back("GET");
-
-//     Location l2;
-//     l2.path = "/images";
-//     l2.root = "www/images";
-//     l2.index = "index.html";
-//     l2.autoindex = true;
-//     l2.allow_post = false;
-//     l2.allow_delete = false;
-//     l2.allow_upload = false;
-//     l2.client_max_body_size = 0;
-//     l2.allowed_methods.push_back("GET");
-
-//     Location l3;
-//     l3.path = "/upload";
-//     l3.root = "www/upload";
-//     l3.index = "index.html";
-//     l3.autoindex = false;
-//     l3.allow_post = true;
-//     l3.allow_delete = false;
-//     l3.allow_upload = true;
-//     l3.upload_path = "www/upload";
-//     l3.client_max_body_size = 0;
-//     l3.allowed_methods.push_back("GET");
-//     l3.allowed_methods.push_back("POST");
-
-//     locations.push_back(l1);
-//     locations.push_back(l2);
-//     locations.push_back(l3);
-// }
-
-LocationConfig matchLocation(const std::string& path)
+LocationConfig ServerConfig::matchLocation(const std::string& path)
 {
     if (locations.empty())
         return LocationConfig();

@@ -11,7 +11,8 @@
 /* ************************************************************************** */
 
 #include "../../include/webserv.hpp"
-std::string handleDELETE(const Request& req, const LocationConfig& loc)
+
+std::string handleDELETE(const HttpRequest& req, const LocationConfig& loc)
 {
     // if (!loc.allow_delete)
     //     return errorResponse(403);
@@ -38,17 +39,17 @@ std::string handleDELETE(const Request& req, const LocationConfig& loc)
     return buildResponse(204, "", "");
 }
 
-std::string dispatchRequest(const Request& req)
+std::string dispatchRequest(const HttpRequest& req)
 {
+    ServerConfig Serv;
     std::string cleanPath = normalizePath(req.path);
-    LocationConfig loc = matchLocation(cleanPath);
-    // std::cout << "--------\n" << loc.root << "\n-------" << std::endl;
-    // if (loc.root.empty() && loc.path.empty())
-    //     return errorResponse(500);
-    // Ayoub commented this 7it loc khawya
-    Request cleanReq = req;
+    LocationConfig loc = Serv.matchLocation(cleanPath);
+    if (loc.root.empty() && loc.path.empty())
+        return errorResponse(500);
+    HttpRequest cleanReq = req;
     cleanReq.path = cleanPath;
     std::string allowHeader = buildAllowHeader(loc);
+    
     if (!isMethodAllowed(loc, cleanReq.method))
         return errorResponse(405, allowHeader);
 
@@ -57,8 +58,8 @@ std::string dispatchRequest(const Request& req)
     }
 
     if (cleanReq.method == "POST")
-        return errorResponse(405, allowHeader);
-
+        return handlePOST(cleanReq, Serv);
+    
     if (cleanReq.method == "DELETE")
         return handleDELETE(cleanReq, loc);
     

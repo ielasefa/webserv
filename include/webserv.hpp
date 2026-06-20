@@ -91,17 +91,8 @@ struct HttpResponse
 
 //---------------------- ilyas ----------------------
 
-struct Request
-{
-    std::string method;
-    std::string path;
-    std::map<std::string, std::string> headers;
-    std::string body;   
-};
+std::string dispatchRequest(const HttpRequest& req);
 
-std::string dispatchRequest(const Request& req);
-
-void initLocations();
 LocationConfig matchLocation(const std::string& requestPath);
 std::string buildPath(const std::string& requestPath, const LocationConfig& loc);
 std::string buildPath(const std::string& requestPath, const LocationConfig& loc, bool appendIndex);
@@ -115,12 +106,12 @@ std::string serveFile(const std::string& path);
 std::vector<std::string> readDirectory(const std::string& path);
 std::string generateAutoIndex(const std::string& requestPath,
                               const std::vector<std::string>& files);
-std::string handleRequest(const Request& request , const LocationConfig& loc);
+std::string handleRequest(const HttpRequest& request , const LocationConfig& loc);
 std::string errorResponse(int code, const std::string& allowHeader = "");
 std::string readBody(int fd, size_t contentLength);
 std::string normalizePath(const std::string& path);
-std::string handlePOST(const Request& request , const LocationConfig& loc);
-std::string handleDELETE(const Request& request ,const LocationConfig& loc);
+std::string handlePOST(const HttpRequest& request , ServerConfig& serv);
+std::string handleDELETE(const HttpRequest& request ,const LocationConfig& loc);
 bool fileExists(const std::string& path);
 std::string buildResponse(int code,
                           const std::string& body,
@@ -163,7 +154,7 @@ typedef struct s_header
 int	init_socket();
 void	add_epoll(int epfd, int fd);
 void	multiplexing(int sfd);
-Request	parsing_header(std::string req_buffer);
+HttpRequest	parsing_header(std::string req_buffer);
 
 //---------------------------------------------------
 

@@ -1,6 +1,6 @@
 #include "../../include/webserv.hpp"
 
-Request	parsing_header(std::string req_buffer)
+HttpRequest	parsing_header(std::string req_buffer)
 {
 	t_header header;
 	header.first_line = req_buffer.substr(0, req_buffer.find("\r"));
@@ -12,7 +12,7 @@ Request	parsing_header(std::string req_buffer)
 	// std::cout << "===================\n" << "MTHD: " << header.method << std::endl
 	// 		<< "PATH: " << header.path << std::endl << "VRSN: " << header.version
 	// 		<< "\n===================" << std::endl;
-	Request req;
+	HttpRequest req;
 	req.method = header.method;
 	req.path = header.path;
 	return (req);
@@ -66,7 +66,7 @@ void	multiplexing(int sfd)
 				else
 				{
 					// response hna
-					Request req = parsing_header(c.req_buffer);
+					HttpRequest req = parsing_header(c.req_buffer);
 					c.res_buffer = dispatchRequest(req);
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);

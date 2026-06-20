@@ -44,7 +44,7 @@ std::string redirect301(const std::string& newPath)
     return buildResponse(301, "", "", headers);
 }
 
-std::string handleRequest(const Request& request, const LocationConfig& loc)
+std::string handleRequest(const HttpRequest& request, const LocationConfig& loc)
 {
     if (request.path.find("..") != std::string::npos)
         return errorResponse(403);

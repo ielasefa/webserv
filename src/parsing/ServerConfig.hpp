@@ -24,6 +24,9 @@ public:
 
     std::vector<LocationConfig> locations;
 
+    LocationConfig matchLocation(const std::string& path);
+
+
     ServerConfig();
 };
 
