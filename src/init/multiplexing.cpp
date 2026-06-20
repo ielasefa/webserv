@@ -1,5 +1,4 @@
-#include "webserv.hpp"
-#include "include/webserv.hpp"
+#include "../../include/webserv.hpp"
 
 Request	parsing_header(std::string req_buffer)
 {

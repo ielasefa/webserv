@@ -10,8 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
-#include <sys/stat.h>
+#include "../../include/webserv.hpp"
 
 bool isFile(const std::string& path)
 {
@@ -76,6 +75,7 @@ std::string readBody(int fd, size_t contentLength)
 
 bool isMethodAllowed(const LocationConfig& loc, const std::string& method)
 {
+    std::cout << "heeeeeeeere\n";
     for (size_t i = 0; i < loc.allowed_methods.size(); i++)
     {
         if (loc.allowed_methods[i] == method)

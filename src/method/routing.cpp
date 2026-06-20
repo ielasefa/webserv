@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include "../../include/webserv.hpp"
 
 std::vector<LocationConfig> locations;
 

@@ -16,8 +16,7 @@ SRC = main.cpp \
       src/parsing/ServerConfig.cpp \
       src/parsing/LocationConfig.cpp \
       src/parsing/CGIHandler.cpp \
-      src/parsing/webserv.cpp \
-      multiplexing.cpp
+      src/init/multiplexing.cpp
 
 OBJ = $(SRC:.cpp=.o)
 

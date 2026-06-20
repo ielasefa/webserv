@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include "../../include/webserv.hpp"
 
 static std::string defaultErrorHTML(int code)
 {

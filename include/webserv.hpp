@@ -1,10 +1,12 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
+
+//---------------------- jaafar ----------------------
+
 #include "../src/parsing/LocationConfig.hpp"
 #include "../src/parsing/ServerConfig.hpp"
 #include "../src/parsing/ConfigParser.hpp"
-
 
 #include <iostream>
 #include <string>
@@ -28,85 +30,6 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-struct Request
-{
-    std::string method;
-    std::string path;
-    std::map<std::string, std::string> headers;
-    std::string body;   
-};
-
-
-//---------------------- ayoub ----------------------
-
-#include <sys/socket.h>
-#include <sys/epoll.h>
-#include <unistd.h>
-#include <iostream>
-#include <string>
-#include <string.h>
-#include <netinet/in.h>
-#include <map>
-
-typedef struct s_client {
-	int fd;
-	std::string req_buffer;
-	std::string res_buffer;
-}	t_client;
-
-typedef struct s_header
-{
-	std::string first_line;
-	std::string method;
-	std::string path;
-	std::string version;
-	std::string other;
-}	t_header;
-
-int	init_socket();
-void	add_epoll(int epfd, int fd);
-void	multiplexing(int sfd);
-Request	parsing_header(std::string req_buffer);
-
-//---------------------------------------------------
-
-
-std::string dispatchRequest(const Request& req);
-
-void initLocations();
-LocationConfig matchLocation(const std::string& requestPath);
-std::string buildPath(const std::string& requestPath, const LocationConfig& loc);
-std::string buildPath(const std::string& requestPath, const LocationConfig& loc, bool appendIndex);
-
-bool isFile(const std::string& path);
-bool isDirectory(const std::string& path);
-std::string readFile(const std::string& path);
-std::string sizeToString(size_t value);
-
-std::string serveFile(const std::string& path);
-std::vector<std::string> readDirectory(const std::string& path);
-std::string generateAutoIndex(const std::string& requestPath,
-                              const std::vector<std::string>& files);
-std::string handleRequest(const Request& request , const LocationConfig& loc);
-std::string errorResponse(int code, const std::string& allowHeader = "");
-std::string readBody(int fd, size_t contentLength);
-std::string normalizePath(const std::string& path);
-std::string handlePOST(const Request& request , const LocationConfig& loc);
-std::string handleDELETE(const Request& request ,const LocationConfig& loc);
-bool fileExists(const std::string& path);
-std::string buildResponse(int code,
-                          const std::string& body,
-                          const std::string& mime,
-                          const std::vector<std::string>& extraHeaders = std::vector<std::string>());
-std::string getMimeType(const std::string& path);
-std::string redirect301(const std::string& newPath);
-std::string statusMessage(int code);
-bool isMethodAllowed(const LocationConfig& loc, const std::string& method);
-std::string buildAllowHeader(const LocationConfig& loc);
-
-
-
 
 extern const int    BACKLOG;
 extern const int    POLL_TIMEOUT_MS;
@@ -164,7 +87,85 @@ struct HttpResponse
     }
 };
 
+//---------------------------------------------------
 
+//---------------------- ilyas ----------------------
+
+struct Request
+{
+    std::string method;
+    std::string path;
+    std::map<std::string, std::string> headers;
+    std::string body;   
+};
+
+std::string dispatchRequest(const Request& req);
+
+void initLocations();
+LocationConfig matchLocation(const std::string& requestPath);
+std::string buildPath(const std::string& requestPath, const LocationConfig& loc);
+std::string buildPath(const std::string& requestPath, const LocationConfig& loc, bool appendIndex);
+
+bool isFile(const std::string& path);
+bool isDirectory(const std::string& path);
+std::string readFile(const std::string& path);
+std::string sizeToString(size_t value);
+
+std::string serveFile(const std::string& path);
+std::vector<std::string> readDirectory(const std::string& path);
+std::string generateAutoIndex(const std::string& requestPath,
+                              const std::vector<std::string>& files);
+std::string handleRequest(const Request& request , const LocationConfig& loc);
+std::string errorResponse(int code, const std::string& allowHeader = "");
+std::string readBody(int fd, size_t contentLength);
+std::string normalizePath(const std::string& path);
+std::string handlePOST(const Request& request , const LocationConfig& loc);
+std::string handleDELETE(const Request& request ,const LocationConfig& loc);
+bool fileExists(const std::string& path);
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime,
+                          const std::vector<std::string>& extraHeaders = std::vector<std::string>());
+std::string getMimeType(const std::string& path);
+std::string redirect301(const std::string& newPath);
+std::string statusMessage(int code);
+bool isMethodAllowed(const LocationConfig& loc, const std::string& method);
+std::string buildAllowHeader(const LocationConfig& loc);
+
+//---------------------------------------------------
+
+//---------------------- ayoub ----------------------
+
+#include <sys/socket.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <iostream>
+#include <string>
+#include <string.h>
+#include <netinet/in.h>
+#include <map>
+
+typedef struct s_client {
+	int fd;
+	std::string req_buffer;
+	std::string res_buffer;
+}	t_client;
+
+typedef struct s_header
+{
+	std::string first_line;
+	std::string method;
+	std::string path;
+	std::string version;
+	std::string other;
+}	t_header;
+
+int	init_socket();
+void	add_epoll(int epfd, int fd);
+void	multiplexing(int sfd);
+Request	parsing_header(std::string req_buffer);
+
+//---------------------------------------------------
 
 #endif
 
