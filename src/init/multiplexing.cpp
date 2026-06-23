@@ -9,9 +9,6 @@ HttpRequest	parsing_header(std::string req_buffer)
 	header.path = header.other.substr(0, header.other.find(" "));
 	header.version = header.other.substr(header.other.find(" ") + 1);
 
-	// std::cout << "===================\n" << "MTHD: " << header.method << std::endl
-	// 		<< "PATH: " << header.path << std::endl << "VRSN: " << header.version
-	// 		<< "\n===================" << std::endl;
 	HttpRequest req;
 	req.method = header.method;
 	req.path = header.path;
@@ -31,19 +28,18 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 	int epfd = epoll_create(1);
 	add_epoll(epfd, sfd);
 	struct epoll_event events[1024];
+	std::map <int, t_client> clients;
 
 	while (1)
 	{
 		int e = epoll_wait(epfd, events, 2, -1);
-		// std::cout << e;
 		for (int i = 0; i < e; i++)
 		{
 			int fd = events[i].data.fd;
-			std::map <int, t_client> clients;
 
 			if (fd == sfd)
 			{
-				int cfd = accept(sfd, NULL, NULL);/////
+				int cfd = accept(sfd, NULL, NULL);//protection
 				t_client cl;
 				cl.fd = cfd;
 				clients[cfd] = cl;
@@ -51,11 +47,10 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 			}
 			else
 			{
-				// handling request hna
 				char buffer[1024] = "";
 				int len = recv(fd, buffer, sizeof(buffer), 0);
 				t_client &c = clients[fd];
-				c.req_buffer += buffer;
+				c.req_buffer += std::string(buffer, len);
 
 				if (len <= 0)
 				{
@@ -63,13 +58,13 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 					clients.erase(fd);
 					close(fd);
 				}
-				else
+				else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
 				{
-					// response hna
 					HttpRequest req = parsing_header(c.req_buffer);
 					c.res_buffer = dispatchRequest(req , serv);
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					clients.erase(fd);
 					close(fd);
 				}
 			}
