@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../include/webserv.hpp"
+#include "../../webserv.hpp"
 
 std::string handleDELETE(const HttpRequest& req, const LocationConfig& loc)
 {

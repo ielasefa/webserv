@@ -3,7 +3,7 @@ NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
 
-SRC = main.cpp \
+SRC = webserv.cpp \
       src/method/routing.cpp \
       src/method/file_serving.cpp \
       src/method/autoindex.cpp \

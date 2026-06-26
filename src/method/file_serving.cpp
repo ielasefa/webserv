@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../include/webserv.hpp"
+#include "../../webserv.hpp"
 
 std::string serveFile(const std::string& path)
 {

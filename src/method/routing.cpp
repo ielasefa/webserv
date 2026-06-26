@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include "../../webserv.hpp"
 
 LocationConfig ServerConfig::matchLocation(const std::string& path) const
 {

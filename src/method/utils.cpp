@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../include/webserv.hpp"
+#include "../../webserv.hpp"
 
 bool isFile(const std::string& path)
 {
