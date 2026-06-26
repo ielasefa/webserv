@@ -4,9 +4,7 @@
 
 //---------------------- jaafar ----------------------
 
-#include "src/parsing/LocationConfig.hpp"
-#include "src/parsing/ServerConfig.hpp"
-#include "src/parsing/ConfigParser.hpp"
+#include "src/parsing/webserv.hpp"
 
 #include <iostream>
 #include <string>
@@ -36,56 +34,6 @@ extern const int    POLL_TIMEOUT_MS;
 extern const int    CGI_TIMEOUT_S;
 extern const char  *DEFAULT_CONFIG_PATH;
 extern const int    READ_BUFFER_SIZE;
-
-struct HttpRequest
-{
-    std::string method;
-
-    std::string path;
-
-    std::string query_string;
-
-    std::string version;
-
-    std::map<std::string, std::string> headers;
-
-    std::string body;
-};
-
-struct HttpResponse
-{
-    int status_code;
-
-    std::string status_text;
-
-    std::map<std::string, std::string> headers;
-
-    std::string body;
-
-    HttpResponse() : status_code(200), status_text("OK") {}
-
-    std::string toString() const
-    {
-        std::ostringstream out;
-        out << "HTTP/1.1 " << status_code << " " << status_text << "\r\n";
-
-        std::map<std::string, std::string>::const_iterator it;
-        for (it = headers.begin(); it != headers.end(); ++it)
-            out << it->first << ": " << it->second << "\r\n";
-
-        if (headers.find("Content-Length") == headers.end())
-        {
-            std::ostringstream len;
-            len << body.size();
-            out << "Content-Length: " << len.str() << "\r\n";
-        }
-
-        out << "Connection: close\r\n";
-        out << "\r\n";
-        out << body;
-        return out.str();
-    }
-};
 
 //---------------------------------------------------
 
