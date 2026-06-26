@@ -1,4 +1,4 @@
-#include "../../webserv.hpp"
+#include "webserv.hpp"
 
 const int   BACKLOG             = 128;
 const int   POLL_TIMEOUT_MS     = -1;

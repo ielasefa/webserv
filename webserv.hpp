@@ -4,9 +4,9 @@
 
 //---------------------- jaafar ----------------------
 
-#include "../src/parsing/LocationConfig.hpp"
-#include "../src/parsing/ServerConfig.hpp"
-#include "../src/parsing/ConfigParser.hpp"
+#include "src/parsing/LocationConfig.hpp"
+#include "src/parsing/ServerConfig.hpp"
+#include "src/parsing/ConfigParser.hpp"
 
 #include <iostream>
 #include <string>
