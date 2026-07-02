@@ -241,17 +241,49 @@ bool ConfigParser::parseServer(ServerConfig &server)
         {
             if (isEnd()) { error("Missing error code after 'error_page'"); return false; }
 
-            int code = std::atoi(consume().c_str());
-
-            if (code <= 0)
+            std::vector<int> codes;
+            
+            // Parse all numeric codes until we hit a non-numeric token (the URI path)
+            while (!isEnd())
             {
-                error("Invalid error code in 'error_page'");
+                const std::string& tok = current();
+                bool isNumeric = true;
+                for (size_t i = 0; i < tok.size(); i++)
+                {
+                    if (!std::isdigit(tok[i]))
+                    {
+                        isNumeric = false;
+                        break;
+                    }
+                }
+                
+                if (!isNumeric)
+                    break;  // Found the URI path
+                
+                int code = std::atoi(consume().c_str());
+                
+                if (code <= 0 || code < 400 || code >= 600)
+                {
+                    error("Invalid error code (must be 400-599)");
+                    return false;
+                }
+                
+                codes.push_back(code);
+            }
+            
+            if (codes.empty())
+            {
+                   error("error_page requires at least one error code");
                 return false;
             }
 
-            if (isEnd()) { error("Missing path after error code"); return false; }
+               if (isEnd()) { error("Missing path after error code(s)"); return false; }
 
-            server.error_pages[code] = consume();
+               std::string path = consume();
+           
+               // Map ALL codes to the same path
+               for (size_t i = 0; i < codes.size(); i++)
+                   server.error_pages[codes[i]] = path;
 
             if (!expect(";")) return false;
         }
@@ -388,6 +420,11 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'client_max_body_size'"); return false; }
             consume();
+            if (!expect(";")) return false;
+        }
+        else if (token == "internal")
+        {
+            location.internal = true;
             if (!expect(";")) return false;
         }
         else

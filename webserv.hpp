@@ -49,17 +49,19 @@ bool isFile(const std::string& path);
 bool isDirectory(const std::string& path);
 std::string readFile(const std::string& path);
 std::string sizeToString(size_t value);
-
-std::string serveFile(const std::string& path);
+std::string generateAutoIndex(const std::string& requestPath,
+                              const std::string& directoryPath,
+                              const std::vector<std::string>& files);
+std::string serveFile(const std::string& path, const ServerConfig* config = NULL);
 std::vector<std::string> readDirectory(const std::string& path);
 std::string generateAutoIndex(const std::string& requestPath,
                               const std::vector<std::string>& files);
-std::string handleRequest(const HttpRequest& request , const LocationConfig& loc);
-std::string errorResponse(int code, const std::string& allowHeader = "");
+std::string handleRequest(const HttpRequest& request , const LocationConfig& loc, const ServerConfig* config = NULL);
+std::string errorResponse(int code, const std::string& allowHeader = "", const ServerConfig* config = NULL);
 std::string readBody(int fd, size_t contentLength);
 std::string normalizePath(const std::string& path);
 std::string handlePOST(const HttpRequest& request , const ServerConfig& serv);
-std::string handleDELETE(const HttpRequest& request ,const LocationConfig& loc);
+std::string handleDELETE(const HttpRequest& request ,const LocationConfig& loc, const ServerConfig* config = NULL);
 bool fileExists(const std::string& path);
 std::string buildResponse(int code,
                           const std::string& body,
@@ -70,6 +72,8 @@ std::string redirect301(const std::string& newPath);
 std::string statusMessage(int code);
 bool isMethodAllowed(const LocationConfig& loc, const std::string& method);
 std::string buildAllowHeader(const LocationConfig& loc);
+std::string redirectResponse(int code, const std::string& url);
+bool isSymlink(const std::string& path);
 
 //---------------------------------------------------
 

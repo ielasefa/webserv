@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/14 19:14:08 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/06/06 13:32:10 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/02 21:41:39 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,7 +75,6 @@ std::string readBody(int fd, size_t contentLength)
 
 bool isMethodAllowed(const LocationConfig& loc, const std::string& method)
 {
-    std::cout << "heeeeeeeere\n";
     for (size_t i = 0; i < loc.allowed_methods.size(); i++)
     {
         if (loc.allowed_methods[i] == method)
@@ -89,7 +88,7 @@ std::string buildAllowHeader(const LocationConfig& loc)
     if (loc.allowed_methods.empty())
         return "";
 
-    std::string header = "Allow: ";
+    std::string header;
 
     for (size_t i = 0; i < loc.allowed_methods.size(); i++)
     {

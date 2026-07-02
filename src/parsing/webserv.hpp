@@ -98,6 +98,8 @@ public:
     std::string redirect;
 
     std::map<std::string, std::string> cgi_pass;
+    
+    bool        internal;
 
     LocationConfig();
 };

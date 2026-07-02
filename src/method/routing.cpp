@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/14 19:14:11 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/06/06 14:38:47 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/02 21:50:39 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,97 +18,121 @@ LocationConfig ServerConfig::matchLocation(const std::string& path) const
         return LocationConfig();
 
     LocationConfig best;
-    bool matched = false;
+    bool found = false;
 
     for (size_t i = 0; i < locations.size(); i++)
     {
         const LocationConfig& loc = locations[i];
-        bool isMatch = false;
 
-        if (loc.path == "/")
-            isMatch = true;
-        else if (path == loc.path || path.find(loc.path + "/") == 0)
-            isMatch = true;
+        bool match =
+            (path == loc.path) ||
+            (loc.path != "/" &&
+             path.compare(0, loc.path.length(), loc.path) == 0 &&
+             (path.size() == loc.path.length() ||
+              path[loc.path.length()] == '/'));
 
-        if (isMatch && (!matched || loc.path.length() > best.path.length()))
+        if (match && (!found || loc.path.length() > best.path.length()))
         {
             best = loc;
-            matched = true;
+            found = true;
         }
     }
 
-    if (!matched)
-        return locations[0];
+    if (found)
+        return best;
 
-    return best;
+    for (size_t i = 0; i < locations.size(); i++)
+        if (locations[i].path == "/")
+            return locations[i];
+
+    return LocationConfig();
+}
+
+std::string redirectResponse(int code, const std::string& url)
+{
+    std::vector<std::string> headers;
+
+    headers.push_back("Location: " + url);
+
+    return buildResponse(code, "", "text/plain", headers);
 }
 
 std::string normalizePath(const std::string& path)
 {
-    std::string result;
-    bool lastWasSlash = false;
+    std::vector<std::string> parts;
+    std::stringstream ss(path);
+    std::string part;
 
-    if (path.empty() || path[0] != '/')
-        result += '/';
-
-    for (size_t i = 0; i < path.size(); i++)
+    while (std::getline(ss, part, '/'))
     {
-        if (path[i] == '/')
-        {
-            if (!lastWasSlash)
-            {
-                result += '/';
-                lastWasSlash = true;
-            }
-        }
-        else
-        {
-            result += path[i];
-            lastWasSlash = false;
-        }
-    }
+        if (part.empty() || part == ".")
+            continue;
 
-    if (result.size() > 1 && result[result.size() - 1] == '/')
-        result.erase(result.size() - 1);
+        if (part == "..")
+        {
+            if (!parts.empty())
+                parts.pop_back();
+            continue;
+        }
+
+        parts.push_back(part);
+    }
+    std::string result = "/";
+    for (size_t i = 0; i < parts.size(); i++)
+    {
+        result += parts[i];
+        if (i + 1 < parts.size())
+            result += "/";
+    }
 
     return result;
 }
-
-std::string buildPath(const std::string& requestPath, const LocationConfig& loc)
+std::string buildPath(const std::string& requestPath,
+                      const LocationConfig& loc)
 {
     return buildPath(requestPath, loc, false);
 }
 
-std::string buildPath(const std::string& requestPath, const LocationConfig& loc, bool appendIndex)
+std::string buildPath(const std::string& requestPath,
+                      const LocationConfig& loc,
+                      bool appendIndex)
 {
-    std::string clean = requestPath;
+    std::string path = loc.root;
 
-    if (loc.path != "/" && (clean == loc.path || clean.find(loc.path + "/") == 0))
-        clean.erase(0, loc.path.length());
-    else if (loc.path == "/" && !clean.empty() && clean[0] == '/')
-        clean.erase(0, 1);
+    if (!path.empty() && path[path.size() - 1] != '/')
+        path += '/';
 
-    if (clean.empty())
-        clean = "/";
+    std::string rel = requestPath;
 
-    if (clean[0] != '/')
-        clean = "/" + clean;
+    size_t q = rel.find('?');
+    if (q != std::string::npos)
+        rel = rel.substr(0, q);
 
-    std::string root = loc.root;
-    if (!root.empty() && root[root.size() - 1] == '/' && clean[0] == '/')
-        root.erase(root.size() - 1);
+    if (loc.path != "/" &&
+        rel.compare(0, loc.path.length(), loc.path) == 0 &&
+        (rel.size() == loc.path.size() || rel[loc.path.size()] == '/'))
+    {
+        rel = rel.substr(loc.path.length());
+    }
 
-    std::string base = root + clean;
+    while (rel.size() > 1 && rel[0] == '/')
+        rel.erase(0, 1);
+
+    if (rel.empty())
+        rel = "/";
+
+    path += rel;
 
     if (appendIndex)
     {
-        if (!base.empty() && base[base.size() - 1] != '/')
-            base += "/";
+        if (path[path.size() - 1] != '/')
+            path += '/';
+
         if (!loc.index.empty())
-            base += loc.index;
+            path += loc.index;
         else
-            base += "index.html";
+            path += "index.html";
     }
 
-    return base;
+    return path;
 }
