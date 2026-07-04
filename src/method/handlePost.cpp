@@ -5,15 +5,14 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/07/02 21:58:29 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/02 21:58:30 by iel-asef         ###   ########.fr       */
+/*   Created: 2026/07/03 00:40:37 by iel-asef          #+#    #+#             */
+/*   Updated: 2026/07/03 00:42:56 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../webserv.hpp"
 
-
-std::string extractFilename(const std::string& body)
+static std::string extractFilename(const std::string& body)
 {
     size_t pos = body.find("filename=\"");
     if (pos == std::string::npos)
@@ -21,11 +20,13 @@ std::string extractFilename(const std::string& body)
 
     pos += 10;
     size_t end = body.find("\"", pos);
+    if (end == std::string::npos)
+        return "";
 
     return body.substr(pos, end - pos);
 }
 
-std::string extractContent(const std::string& body)
+static std::string extractContent(const std::string& body)
 {
     size_t start = body.find("\r\n\r\n");
     if (start == std::string::npos)
@@ -34,17 +35,15 @@ std::string extractContent(const std::string& body)
     start += 4;
 
     size_t end = body.rfind("--");
-    if (end == std::string::npos)
+    if (end == std::string::npos || end < start)
         return body.substr(start);
 
     return body.substr(start, end - start);
 }
 
-std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
+std::string handlePOST(const HttpRequest& req,
+                       const ServerConfig& serv)
 {
-    // if (!loc.allow_post)
-    //     return errorResponse(403);
-
     if (req.path.empty())
         return errorResponse(400, "", &serv);
 
@@ -56,15 +55,17 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
     if (cleanPath.find("..") != std::string::npos)
         return errorResponse(403, "", &serv);
 
+    LocationConfig loc = serv.matchLocation(req.path);
     std::map<std::string, std::string>::const_iterator it =
         req.headers.find("Content-Length");
 
     if (it == req.headers.end())
         return errorResponse(411, "", &serv);
 
-    size_t contentLength = std::atoi(it->second.c_str());
+    size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
 
-    if (serv.client_max_body_size > 0 && contentLength > serv.client_max_body_size)
+    if (serv.client_max_body_size > 0 &&
+        contentLength > serv.client_max_body_size)
         return errorResponse(413, "", &serv);
 
     if (req.body.size() != contentLength)
@@ -74,8 +75,9 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
     // if (loc.allow_upload)
     // {
     //     if (loc.upload_path.empty())
-    //         return errorResponse(500);
-    //     // baseDir = loc.upload_path;
+    //         return errorResponse(500, "", &serv);
+
+    //     baseDir = loc.upload_path;
     // }
     // else
     // {
@@ -83,7 +85,7 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
     // }
 
     // if (loc.allow_upload && !isDirectory(baseDir))
-    //     return errorResponse(500);
+    //     return errorResponse(500, "", &serv);
 
     std::map<std::string, std::string>::const_iterator ct =
         req.headers.find("Content-Type");
@@ -97,16 +99,17 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
         if (filename.empty() || content.empty())
             return errorResponse(400, "", &serv);
 
-        if (filename.find("/") != std::string::npos ||
-            filename.find("..") != std::string::npos)
+        if (filename.find("..") != std::string::npos ||
+            filename.find("/") != std::string::npos)
             return errorResponse(403, "", &serv);
 
         std::string path = baseDir;
         if (!path.empty() && path[path.size() - 1] != '/')
-            path += "/";
+            path += '/';
+
         path += filename;
 
-        if (isDirectory(path))
+        if (isDirectory(path) || isSymlink(path))
             return errorResponse(403, "", &serv);
 
         std::ofstream file(path.c_str(), std::ios::binary);
@@ -116,11 +119,12 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
         file.write(content.c_str(), content.size());
         file.close();
 
-        return buildResponse(201, "", "");
+        return buildResponse(201, "", "text/plain");
     }
 
     std::string name;
     size_t slash = cleanPath.find_last_of('/');
+
     if (slash == std::string::npos)
         name = cleanPath;
     else
@@ -129,15 +133,17 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
     if (name.empty())
         return errorResponse(400, "", &serv);
 
-    if (name.find("..") != std::string::npos || name.find("/") != std::string::npos)
+    if (name.find("..") != std::string::npos ||
+        name.find("/") != std::string::npos)
         return errorResponse(403, "", &serv);
 
     std::string target = baseDir;
     if (!target.empty() && target[target.size() - 1] != '/')
-        target += "/";
+        target += '/';
+
     target += name;
 
-    if (isDirectory(target))
+    if (isDirectory(target) || isSymlink(target))
         return errorResponse(403, "", &serv);
 
     std::ofstream file(target.c_str(), std::ios::binary);
@@ -147,6 +153,5 @@ std::string handlePOST(const HttpRequest& req, const ServerConfig& serv)
     file.write(req.body.c_str(), contentLength);
     file.close();
 
-    return buildResponse(201, "", "");
+    return buildResponse(201, "", "text/plain");
 }
-
