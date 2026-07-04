@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/03 00:40:37 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/03 00:42:56 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/05 00:18:04 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,20 +72,20 @@ std::string handlePOST(const HttpRequest& req,
         return errorResponse(400, "", &serv);
 
     std::string baseDir;
-    // if (loc.allow_upload)
-    // {
-    //     if (loc.upload_path.empty())
-    //         return errorResponse(500, "", &serv);
+    if (loc.allow_upload)
+    {
+        if (loc.upload_path.empty())
+            return errorResponse(500, "", &serv);
 
-    //     baseDir = loc.upload_path;
-    // }
-    // else
-    // {
-    //     baseDir = buildPath(cleanPath, loc);
-    // }
+        baseDir = loc.upload_path;
+    }
+    else
+    {
+        baseDir = buildPath(cleanPath, loc);
+    }
 
-    // if (loc.allow_upload && !isDirectory(baseDir))
-    //     return errorResponse(500, "", &serv);
+    if (loc.allow_upload && !isDirectory(baseDir))
+        return errorResponse(500, "", &serv);
 
     std::map<std::string, std::string>::const_iterator ct =
         req.headers.find("Content-Type");
