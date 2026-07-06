@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// std::cout << "Server started with " << servers.size() << " server(s)" << std::endl;
-		int	sfd = init_socket();
+		int	sfd = init_socket(servers[0]);
 		multiplexing(sfd , servers[0]);
 	}
 	catch (const std::exception &e)

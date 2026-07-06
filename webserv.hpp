@@ -103,7 +103,7 @@ typedef struct s_header
 	std::string other;
 }	t_header;
 
-int	init_socket();
+int	init_socket(const ServerConfig& serv);
 void	add_epoll(int epfd, int fd);
 void	multiplexing(int sfd ,const ServerConfig& serv);
 HttpRequest	parsing_header(std::string req_buffer);

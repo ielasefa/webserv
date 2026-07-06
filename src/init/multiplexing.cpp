@@ -60,6 +60,7 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 				}
 				else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
 				{
+					// std::cout << "port == " << serv.port << std::endl;
 					HttpRequest req = parsing_header(c.req_buffer);
 					c.res_buffer = dispatchRequest(req , serv);
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
@@ -72,7 +73,7 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 	}
 }
 
-int	init_socket()
+int	init_socket(const ServerConfig& serv)
 {
 	int sfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -80,9 +81,9 @@ int	init_socket()
 	setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // reuse of the port
 	sockaddr_in	addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(3334); // hardcoded till we get it from config file
+	addr.sin_port = htons(serv.port);
 	addr.sin_addr.s_addr = INADDR_ANY;
-	if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+	if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)//
 		std::cout << "--shit--\n";
 
 	listen(sfd, 4);
