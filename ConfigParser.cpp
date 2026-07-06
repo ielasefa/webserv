@@ -241,17 +241,49 @@ bool ConfigParser::parseServer(ServerConfig &server)
         {
             if (isEnd()) { error("Missing error code after 'error_page'"); return false; }
 
-            int code = std::atoi(consume().c_str());
-
-            if (code <= 0)
+            std::vector<int> codes;
+            
+            // Parse all numeric codes until we hit a non-numeric token (the URI path)
+            while (!isEnd())
             {
-                error("Invalid error code in 'error_page'");
+                const std::string& tok = current();
+                bool isNumeric = true;
+                for (size_t i = 0; i < tok.size(); i++)
+                {
+                    if (!std::isdigit(tok[i]))
+                    {
+                        isNumeric = false;
+                        break;
+                    }
+                }
+                
+                if (!isNumeric)
+                    break;  // Found the URI path
+                
+                int code = std::atoi(consume().c_str());
+                
+                if (code <= 0 || code < 400 || code >= 600)
+                {
+                    error("Invalid error code (must be 400-599)");
+                    return false;
+                }
+                
+                codes.push_back(code);
+            }
+            
+            if (codes.empty())
+            {
+                   error("error_page requires at least one error code");
                 return false;
             }
 
-            if (isEnd()) { error("Missing path after error code"); return false; }
+               if (isEnd()) { error("Missing path after error code(s)"); return false; }
 
-            server.error_pages[code] = consume();
+               std::string path = consume();
+           
+               // Map ALL codes to the same path
+               for (size_t i = 0; i < codes.size(); i++)
+                   server.error_pages[codes[i]] = path;
 
             if (!expect(";")) return false;
         }
@@ -345,18 +377,31 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         }
         else if (token == "return")
         {
-            if (isEnd()) { error("Missing redirect code after 'return'"); return false; }
+            if (isEnd()) { error("Missing value after 'return'"); return false; }
 
-            location.redirect_code = std::atoi(consume().c_str());
+            // Peek at next token — if it starts with a digit it's the code.
+            // Otherwise it's directly a URL (nginx default 302 behaviour).
+            const std::string &first = current();
+            bool looksLikeCode = !first.empty() &&
+                std::isdigit(static_cast<unsigned char>(first[0]));
 
-            if (location.redirect_code != 301 && location.redirect_code != 302)
+            if (looksLikeCode)
             {
-                error("'return' code must be 301 or 302");
-                return false;
+                location.redirect_code = std::atoi(consume().c_str());
+                if (location.redirect_code != 301 && location.redirect_code != 302)
+                {
+                    error("'return' code must be 301 or 302");
+                    return false;
+                }
+                if (isEnd()) { error("Missing URL after redirect code"); return false; }
+                location.redirect = consume();
             }
-
-            if (isEnd()) { error("Missing URL after redirect code"); return false; }
-            location.redirect = consume();
+            else
+            {
+                // No code — default to 302 Found
+                location.redirect_code = 302;
+                location.redirect = consume();
+            }
 
             if (!expect(";")) return false;
         }
@@ -364,6 +409,42 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing path after 'upload_store'"); return false; }
             location.upload_store = consume();
+            if (!expect(";")) return false;
+        }
+        else if (token == "upload_path")
+        {
+            // Where uploaded files are saved.
+            // e.g. "upload_path www/upload;"
+            if (isEnd()) { error("Missing path after 'upload_path'"); return false; }
+            location.upload_path = consume();
+            if (!expect(";")) return false;
+        }
+        else if (token == "allow_upload")
+        {
+            // Enable or disable file uploads at this location.
+            // e.g. "allow_upload on;"
+            if (isEnd()) { error("Missing value after 'allow_upload'"); return false; }
+            std::string val = consume();
+            if (val != "on" && val != "off")
+            {
+                error("'allow_upload' must be 'on' or 'off', got: '" + val + "'");
+                return false;
+            }
+            location.allow_upload = (val == "on");
+            if (!expect(";")) return false;
+        }
+        else if (token == "allow_delete")
+        {
+            // Enable or disable DELETE method at this location.
+            // e.g. "allow_delete on;"
+            if (isEnd()) { error("Missing value after 'allow_delete'"); return false; }
+            std::string val = consume();
+            if (val != "on" && val != "off")
+            {
+                error("'allow_delete' must be 'on' or 'off', got: '" + val + "'");
+                return false;
+            }
+            location.allow_delete = (val == "on");
             if (!expect(";")) return false;
         }
         else if (token == "cgi_pass")
@@ -388,6 +469,11 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'client_max_body_size'"); return false; }
             consume();
+            if (!expect(";")) return false;
+        }
+        else if (token == "internal")
+        {
+            location.internal = true;
             if (!expect(";")) return false;
         }
         else
