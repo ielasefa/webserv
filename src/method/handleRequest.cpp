@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/17 13:44:30 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/02 21:54:34 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/05 00:52:50 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,7 +109,22 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
     
     if (!isMethodAllowed(loc, cleanReq.method))
         return errorResponse(405, allowHeader, &Serv);
-
+    
+    size_t dotPos = cleanPath.find_last_of('.');
+    if (dotPos != std::string::npos)
+    {
+        std::string ext = cleanPath.substr(dotPos);
+        if (loc.cgi_pass.find(ext) != loc.cgi_pass.end())
+        {
+            std::string scriptPath = buildPath(cleanPath, loc);
+            if (!isFile(scriptPath))
+                return errorResponse(404, "", &Serv);
+            
+            CGIHandler cgi(cleanReq, scriptPath, loc.cgi_pass.at(ext));
+            return cgi.execute();
+        }
+    }
+    
     if (cleanReq.method == "GET"){
         return handleRequest(cleanReq, loc, &Serv);
     }
