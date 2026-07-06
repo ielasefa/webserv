@@ -101,6 +101,10 @@ public:
     
     bool        internal;
 
+    bool        allow_upload;
+    std::string upload_path;
+    bool        allow_delete;
+
     LocationConfig();
 };
 

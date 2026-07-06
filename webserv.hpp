@@ -1,5 +1,5 @@
-#ifndef PARSING_CONFIG_HPP
-#define PARSING_CONFIG_HPP
+#ifndef WEBSERV_HPP
+#define WEBSERV_HPP
 
 
 //---------------------- jaafar ----------------------
@@ -110,5 +110,5 @@ HttpRequest	parsing_header(std::string req_buffer);
 
 //---------------------------------------------------
 
-#endif
+#endif // WEBSERV_HPP
 

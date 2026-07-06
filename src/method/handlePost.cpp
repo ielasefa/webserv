@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/03 00:40:37 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/05 00:18:04 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/06 15:15:47 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,10 +138,12 @@ std::string handlePOST(const HttpRequest& req,
         return errorResponse(403, "", &serv);
 
     std::string target = baseDir;
-    if (!target.empty() && target[target.size() - 1] != '/')
-        target += '/';
-
-    target += name;
+    if (loc.allow_upload)
+    {
+        if (!target.empty() && target[target.size() - 1] != '/')
+            target += '/';
+        target += name;
+    }
 
     if (isDirectory(target) || isSymlink(target))
         return errorResponse(403, "", &serv);
