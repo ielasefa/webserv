@@ -1,5 +1,5 @@
-#ifndef WEBSERV_HPP
-#define WEBSERV_HPP
+#ifndef PARSING_CONFIG_HPP
+#define PARSING_CONFIG_HPP
 
 
 //---------------------- jaafar ----------------------
