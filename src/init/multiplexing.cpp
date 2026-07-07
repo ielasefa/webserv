@@ -61,8 +61,10 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 				else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
 				{
 					// std::cout << "port == " << serv.port << std::endl;
+					// std::cout << "----------------\n" << c.req_buffer << "\n----------------\n";
 					HttpRequest req = parsing_header(c.req_buffer);
 					c.res_buffer = dispatchRequest(req , serv);
+					std::cout << "----------------\n" << c.res_buffer << "\n----------------\n";
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					clients.erase(fd);

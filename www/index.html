@@ -1,1 +1,72 @@
-<h1>  INDEX OK  </h1>
+
+<style>
+  .container { max-width: 600px; margin: 2rem auto; font-family: var(--font-sans); }
+  h2 { font-size: 18px; font-weight: 500; color: var(--text-primary); margin: 1.5rem 0 0.75rem; }
+  .card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  input[type=text], input[type=password], textarea { width: 100%; box-sizing: border-box; margin-bottom: 12px; }
+  button { margin-top: 4px; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--radius); background: var(--bg-accent); color: var(--text-accent); margin-bottom: 8px; }
+</style>
+
+<div class="container">
+
+  <h2>1 — Simple form (application/x-www-form-urlencoded)</h2>
+  <div class="card">
+    <span class="tag">POST</span>
+    <form action="http://localhost:8080/submit" method="POST">
+      <label>Username</label>
+      <input type="text" name="username" placeholder="john">
+      <label>Password</label>
+      <input type="password" name="password" placeholder="••••••">
+      <button type="submit">Submit form</button>
+    </form>
+  </div>
+
+  <h2>2 — File upload (multipart/form-data)</h2>
+  <div class="card">
+    <span class="tag">POST</span>
+    <form action="http://localhost:8080/upload" method="POST" enctype="multipart/form-data">
+      <label>Pick a file</label>
+      <input type="file" name="file" style="margin-bottom:12px; display:block;">
+      <button type="submit">Upload file</button>
+    </form>
+  </div>
+
+  <h2>3 — Raw body (text/plain)</h2>
+  <div class="card">
+    <span class="tag">POST</span>
+    <form action="http://localhost:8080/raw" method="POST" enctype="text/plain">
+      <label>Raw text body</label>
+      <textarea name="body" rows="3" placeholder="hello server"></textarea>
+      <button type="submit">Send raw</button>
+    </form>
+  </div>
+
+  <h2>4 — GET request</h2>
+  <div class="card">
+    <span class="tag" style="background:var(--bg-success);color:var(--text-success)">GET</span>
+    <form action="http://localhost:8080/" method="GET">
+      <button type="submit">GET /</button>
+    </form>
+  </div>
+
+  <h2>5 — DELETE (via fetch)</h2>
+  <div class="card">
+    <span class="tag" style="background:var(--bg-danger);color:var(--text-danger)">DELETE</span>
+    <label>Path to delete</label>
+    <input type="text" id="del-path" placeholder="/files/test.txt" style="margin-bottom:8px;">
+    <button onclick="sendDelete()">Send DELETE</button>
+    <pre id="del-res" style="font-size:12px;color:var(--text-secondary);margin-top:8px;"></pre>
+  </div>
+
+</div>
+
+<script>
+function sendDelete() {
+  const path = document.getElementById('del-path').value || '/files/test.txt';
+  fetch('http://localhost:8080' + path, { method: 'DELETE' })
+    .then(r => document.getElementById('del-res').textContent = r.status + ' ' + r.statusText)
+    .catch(e => document.getElementById('del-res').textContent = 'Error: ' + e.message);
+}
+</script>
