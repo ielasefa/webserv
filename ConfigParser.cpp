@@ -1,33 +1,50 @@
 #include "webserv.hpp"
 
+
 ConfigParser::ConfigParser(const std::string &filename)
     : _filename(filename), _pos(0)
 {
 }
-
+// read the config file and and split it into tokenze
 bool ConfigParser::tokenize()
 {
-    std::ifstream file(_filename.c_str());
-
-    if (!file.is_open())
+    int fd = open(_filename.c_str(), O_RDONLY);
+    if (fd < 0)
     {
         error("Cannot open config file: " + _filename);
         return false;
     }
 
+    std::string content;
+    char        buf[4096];
+    ssize_t     bytes;
+
+    while ((bytes = read(fd, buf, sizeof(buf))) > 0)
+        content.append(buf, static_cast<size_t>(bytes));
+
+    close(fd);
+
+    if (bytes < 0)
+    {
+        error("Error reading config file: " + _filename);
+        return false;
+    }
+
+    std::istringstream stream(content);
     std::string line;
-    while (std::getline(file, line))
+
+    while (std::getline(stream, line))
     {
         size_t comment = line.find('#');
         if (comment != std::string::npos)
             line = line.substr(0, comment);
 
         std::istringstream iss(line);
-
         std::string word;
+
         while (iss >> word)
         {
-            std::string buf;
+            std::string buf2;
 
             for (size_t i = 0; i < word.size(); i++)
             {
@@ -35,25 +52,24 @@ bool ConfigParser::tokenize()
 
                 if (c == '{' || c == '}' || c == ';')
                 {
-                    if (!buf.empty())
+                    if (!buf2.empty())
                     {
-                        _tokens.push_back(buf);
-                        buf.clear();
+                        _tokens.push_back(buf2);
+                        buf2.clear();
                     }
                     _tokens.push_back(std::string(1, c));
                 }
                 else
                 {
-                    buf += c;
+                    buf2 += c;
                 }
             }
 
-            if (!buf.empty())
-                _tokens.push_back(buf);
+            if (!buf2.empty())
+                _tokens.push_back(buf2);
         }
     }
 
-    file.close();
     return true;
 }
 
@@ -93,6 +109,7 @@ bool ConfigParser::expect(const std::string &expected)
     return true;
 }
 
+
 size_t ConfigParser::parseSize(const std::string &str) const
 {
     if (str.empty())
@@ -131,6 +148,7 @@ const std::vector<ServerConfig> &ConfigParser::getServers() const
     return _servers;
 }
 
+
 bool ConfigParser::parse()
 {
     if (!tokenize())
@@ -166,8 +184,7 @@ bool ConfigParser::parse()
         }
         else
         {
-            error("Unexpected token at top level: '" + token
-                  + "' (expected 'server')");
+            error("Unexpected token at top level: '" + token + "'");
             return false;
         }
     }
@@ -180,6 +197,8 @@ bool ConfigParser::parse()
 
     return true;
 }
+
+// PARSE SERVER BLOCK
 
 bool ConfigParser::parseServer(ServerConfig &server)
 {
@@ -195,7 +214,6 @@ bool ConfigParser::parseServer(ServerConfig &server)
             if (isEnd()) { error("Missing value after 'listen'"); return false; }
 
             std::string value = consume();
-
             size_t colon = value.find(':');
             if (colon != std::string::npos)
             {
@@ -229,11 +247,7 @@ bool ConfigParser::parseServer(ServerConfig &server)
         }
         else if (token == "client_max_body_size")
         {
-            if (isEnd())
-            {
-                error("Missing value after 'client_max_body_size'");
-                return false;
-            }
+            if (isEnd()) { error("Missing value after 'client_max_body_size'"); return false; }
             server.client_max_body_size = parseSize(consume());
             if (!expect(";")) return false;
         }
@@ -241,49 +255,44 @@ bool ConfigParser::parseServer(ServerConfig &server)
         {
             if (isEnd()) { error("Missing error code after 'error_page'"); return false; }
 
+            // Accept multiple codes on one line: error_page 500 502 503 /50x.html;
             std::vector<int> codes;
-            
-            // Parse all numeric codes until we hit a non-numeric token (the URI path)
+
             while (!isEnd())
             {
-                const std::string& tok = current();
-                bool isNumeric = true;
+                const std::string &tok = current();
+                bool isNumeric = !tok.empty();
                 for (size_t i = 0; i < tok.size(); i++)
                 {
-                    if (!std::isdigit(tok[i]))
+                    if (!std::isdigit(static_cast<unsigned char>(tok[i])))
                     {
                         isNumeric = false;
                         break;
                     }
                 }
-                
                 if (!isNumeric)
-                    break;  // Found the URI path
-                
+                    break;
+
                 int code = std::atoi(consume().c_str());
-                
                 if (code <= 0 || code < 400 || code >= 600)
                 {
                     error("Invalid error code (must be 400-599)");
                     return false;
                 }
-                
                 codes.push_back(code);
             }
-            
+
             if (codes.empty())
             {
-                   error("error_page requires at least one error code");
+                error("error_page requires at least one error code");
                 return false;
             }
 
-               if (isEnd()) { error("Missing path after error code(s)"); return false; }
+            if (isEnd()) { error("Missing path after error code(s)"); return false; }
 
-               std::string path = consume();
-           
-               // Map ALL codes to the same path
-               for (size_t i = 0; i < codes.size(); i++)
-                   server.error_pages[codes[i]] = path;
+            std::string path = consume();
+            for (size_t i = 0; i < codes.size(); i++)
+                server.error_pages[codes[i]] = path;
 
             if (!expect(";")) return false;
         }
@@ -318,6 +327,8 @@ bool ConfigParser::parseServer(ServerConfig &server)
     return false;
 }
 
+// PARSE LOCATION BLOCK
+
 bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
 {
     (void)server;
@@ -328,6 +339,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
 
         if (token == "}")
             return true;
+
         else if (token == "root")
         {
             if (isEnd()) { error("Missing value after 'root'"); return false; }
@@ -346,7 +358,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
             std::string val = consume();
             if (val != "on" && val != "off")
             {
-                error("'autoindex' value must be 'on' or 'off', got: '" + val + "'");
+                error("'autoindex' must be 'on' or 'off', got: '" + val + "'");
                 return false;
             }
             location.autoindex = (val == "on");
@@ -379,8 +391,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'return'"); return false; }
 
-            // Peek at next token — if it starts with a digit it's the code.
-            // Otherwise it's directly a URL (nginx default 302 behaviour).
+            // If next token starts with a digit it's the code, else default 302
             const std::string &first = current();
             bool looksLikeCode = !first.empty() &&
                 std::isdigit(static_cast<unsigned char>(first[0]));
@@ -398,7 +409,6 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
             }
             else
             {
-                // No code — default to 302 Found
                 location.redirect_code = 302;
                 location.redirect = consume();
             }
@@ -413,16 +423,12 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         }
         else if (token == "upload_path")
         {
-            // Where uploaded files are saved.
-            // e.g. "upload_path www/upload;"
             if (isEnd()) { error("Missing path after 'upload_path'"); return false; }
             location.upload_path = consume();
             if (!expect(";")) return false;
         }
         else if (token == "allow_upload")
         {
-            // Enable or disable file uploads at this location.
-            // e.g. "allow_upload on;"
             if (isEnd()) { error("Missing value after 'allow_upload'"); return false; }
             std::string val = consume();
             if (val != "on" && val != "off")
@@ -435,8 +441,6 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         }
         else if (token == "allow_delete")
         {
-            // Enable or disable DELETE method at this location.
-            // e.g. "allow_delete on;"
             if (isEnd()) { error("Missing value after 'allow_delete'"); return false; }
             std::string val = consume();
             if (val != "on" && val != "off")
@@ -462,7 +466,6 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
             std::string exec_path = consume();
 
             location.cgi_pass[ext] = exec_path;
-
             if (!expect(";")) return false;
         }
         else if (token == "client_max_body_size")
