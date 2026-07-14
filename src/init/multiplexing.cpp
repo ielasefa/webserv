@@ -9,6 +9,7 @@ HttpRequest	parsing_header(std::string req_buffer)
 	header.path = header.other.substr(0, header.other.find(" "));
 	header.version = header.other.substr(header.other.find(" ") + 1);
 
+	std::cout << "===============\n" << header.other << "===============\n";
 	HttpRequest req;
 	req.method = header.method;
 	req.path = header.path;
@@ -64,7 +65,7 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 					// std::cout << "----------------\n" << c.req_buffer << "\n----------------\n";
 					HttpRequest req = parsing_header(c.req_buffer);
 					c.res_buffer = dispatchRequest(req , serv);
-					std::cout << "----------------\n" << c.res_buffer << "\n----------------\n";
+					// std::cout << "-------res_buffer---------\n" << c.res_buffer << "\n----------------\n";
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
 					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 					clients.erase(fd);

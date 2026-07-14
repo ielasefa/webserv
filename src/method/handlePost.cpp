@@ -59,8 +59,15 @@ std::string handlePOST(const HttpRequest& req,
     std::map<std::string, std::string>::const_iterator it =
         req.headers.find("Content-Length");
 
+
+    // for (std::map<std::string, std::string>::const_iterator it = req.headers.begin();
+    // it != req.headers.end(); ++it)
+    //     std::cout << "[" << it->first << "] = " << it->second << std::endl;
     if (it == req.headers.end())
+    {
+        // std::cout << "---------hnaaaaa 411----------\n";///////////////////
         return errorResponse(411, "", &serv);
+    }
 
     size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
 
