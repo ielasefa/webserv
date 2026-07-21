@@ -3,16 +3,36 @@
 HttpRequest	parsing_header(std::string req_buffer)
 {
 	t_header header;
-	header.first_line = req_buffer.substr(0, req_buffer.find("\r"));
-	header.method = header.first_line.substr(0, header.first_line.find(" "));
-	header.other = header.first_line.substr(header.first_line.find(" ") + 1);
-	header.path = header.other.substr(0, header.other.find(" "));
-	header.version = header.other.substr(header.other.find(" ") + 1);
-
-	std::cout << "===============\n" << header.other << "===============\n";
 	HttpRequest req;
-	req.method = header.method;
-	req.path = header.path;
+
+	header.first_line = req_buffer.substr(0, req_buffer.find("\r"));
+	req.method = header.first_line.substr(0, header.first_line.find(" "));
+	header.other = header.first_line.substr(header.first_line.find(" ") + 1);
+	req.path = header.other.substr(0, header.other.find(" "));
+	// header.version = header.other.substr(header.other.find(" ") + 1);
+
+	if (req.method == "POST")
+	{
+		std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
+		std::string line;
+		while (tmp.find("\r\n\r\n") != std::string::npos)
+		{
+			line = tmp.substr(0, tmp.find("\r\n"));
+			// std::cout << "******************" << tmp << "******************" << std::endl;
+			req.headers[line.substr(0, line.find(": "))] = line.substr(line.find(": ") + 2);
+			// if (line.substr(line.find(": ") + 2).find("\r") != std::string::npos)
+			// 	std::cout << "kaynaaaaaa";
+			// std::cout << line << std::endl;
+			// if (tmp.find("\r\n\r\n"))
+			// 	std::cout << "wtf";
+			tmp = tmp.substr(tmp.find("\r\n") + 2);
+		}
+		// std::cout << "***********\n"<< tmp << "\n***********\n";
+	}
+	// std::cout << "[" << req.headers["Sec-Fetch-Site"] << "]" << std::endl;
+	// req.headers.insert({header.method, header.version});
+	// std::cout << req.headers[header.method] << std::endl;
+	// std::cout << std::endl;
 	return (req);
 }
 
@@ -62,8 +82,11 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 				else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
 				{
 					// std::cout << "port == " << serv.port << std::endl;
+
+					// std::cout << c.req_buffer << std::endl;//
 					// std::cout << "----------------\n" << c.req_buffer << "\n----------------\n";
 					HttpRequest req = parsing_header(c.req_buffer);
+					// std::cout << "smaykoooooooooooom" << std::endl;
 					c.res_buffer = dispatchRequest(req , serv);
 					// std::cout << "-------res_buffer---------\n" << c.res_buffer << "\n----------------\n";
 					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
