@@ -27,7 +27,9 @@ HttpRequest	parsing_header(std::string req_buffer)
 			// 	std::cout << "wtf";
 			tmp = tmp.substr(tmp.find("\r\n") + 2);
 		}
-		// std::cout << "***********\n"<< tmp << "\n***********\n";
+		if (tmp.find("\r\n\r\n"))
+			req.body = tmp.substr(tmp.find("\r\n\r\n") + 3);
+		std::cout << "["<< req.body << "]" << std::endl;
 	}
 	// std::cout << "[" << req.headers["Sec-Fetch-Site"] << "]" << std::endl;
 	// req.headers.insert({header.method, header.version});
