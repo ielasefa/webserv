@@ -1,114 +1,201 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
-
-//---------------------- jaafar ----------------------
-
-#include "src/parsing/webserv.hpp"
-
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cerrno>
-#include <unistd.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <csignal>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
+#include <string>       
+#include <vector>       
+#include <map>          
+#include <iostream>     
+#include <fstream>      
+#include <sstream>      
+#include <algorithm>    
+#include <cstdlib>      
+#include <cstring>      
+#include <cerrno>       
+#include <unistd.h>     
+#include <fcntl.h>          
+#include <poll.h>           
+#include <signal.h>         
+#include <sys/socket.h>     
+#include <sys/types.h>      
+#include <sys/stat.h>       
+#include <sys/wait.h>       
+#include <sys/time.h>       
+#include <netinet/in.h>     
+#include <arpa/inet.h>      
+#include <dirent.h>         
 extern const int    BACKLOG;
 extern const int    POLL_TIMEOUT_MS;
 extern const int    CGI_TIMEOUT_S;
 extern const char  *DEFAULT_CONFIG_PATH;
 extern const int    READ_BUFFER_SIZE;
 
-//---------------------------------------------------
-
-//---------------------- ilyas ----------------------
-
-std::string dispatchRequest(const HttpRequest& req , const ServerConfig& serv);
-
-LocationConfig matchLocation(const std::string& requestPath);
-std::string buildPath(const std::string& requestPath, const LocationConfig& loc);
-std::string buildPath(const std::string& requestPath, const LocationConfig& loc, bool appendIndex);
-
-bool isFile(const std::string& path);
-bool isDirectory(const std::string& path);
-std::string readFile(const std::string& path);
-std::string sizeToString(size_t value);
-std::string generateAutoIndex(const std::string& requestPath,
-                              const std::string& directoryPath,
-                              const std::vector<std::string>& files);
-std::string serveFile(const std::string& path, const ServerConfig* config = NULL);
-std::vector<std::string> readDirectory(const std::string& path);
-std::string generateAutoIndex(const std::string& requestPath,
-                              const std::vector<std::string>& files);
-std::string handleRequest(const HttpRequest& request , const LocationConfig& loc, const ServerConfig* config = NULL);
-std::string errorResponse(int code, const std::string& allowHeader = "", const ServerConfig* config = NULL);
-std::string readBody(int fd, size_t contentLength);
-std::string normalizePath(const std::string& path);
-std::string handlePOST(const HttpRequest& request , const ServerConfig& serv);
-std::string handleDELETE(const HttpRequest& request ,const LocationConfig& loc, const ServerConfig* config = NULL);
-bool fileExists(const std::string& path);
-std::string buildResponse(int code,
-                          const std::string& body,
-                          const std::string& mime,
-                          const std::vector<std::string>& extraHeaders = std::vector<std::string>());
-std::string getMimeType(const std::string& path);
-std::string redirect301(const std::string& newPath);
-std::string statusMessage(int code);
-bool isMethodAllowed(const LocationConfig& loc, const std::string& method);
-std::string buildAllowHeader(const LocationConfig& loc);
-std::string redirectResponse(int code, const std::string& url);
-bool isSymlink(const std::string& path);
-
-//---------------------------------------------------
-
-//---------------------- ayoub ----------------------
-
-#include <sys/socket.h>
-#include <sys/epoll.h>
-#include <unistd.h>
-#include <iostream>
-#include <string>
-#include <string.h>
-#include <netinet/in.h>
-#include <map>
-
-typedef struct s_client {
-	int fd;
-	std::string req_buffer;
-	std::string res_buffer;
-}	t_client;
-
-typedef struct s_header
+struct HttpRequest
 {
-	std::string first_line;
-	std::string method;
-	std::string path;
-	std::string version;
-	std::string other;
-}	t_header;
+    std::string method;
 
-int	init_socket(const ServerConfig& serv);
-void	add_epoll(int epfd, int fd);
-void	multiplexing(int sfd ,const ServerConfig& serv);
-HttpRequest	parsing_header(std::string req_buffer);
+    std::string path;
 
-//---------------------------------------------------
+    std::string query_string;
 
-#endif // WEBSERV_HPP
+    std::string version;
 
+    std::map<std::string, std::string> headers;
+
+    std::string body;
+};
+
+struct HttpResponse
+{
+    int status_code;
+
+    std::string status_text;
+
+    std::map<std::string, std::string> headers;
+
+    std::string body;
+
+    HttpResponse() : status_code(200), status_text("OK") {}
+
+    std::string toString() const
+    {
+        std::ostringstream out;
+        out << "HTTP/1.1 " << status_code << " " << status_text << "\r\n";
+
+        std::map<std::string, std::string>::const_iterator it;
+        for (it = headers.begin(); it != headers.end(); ++it)
+            out << it->first << ": " << it->second << "\r\n";
+
+        if (headers.find("Content-Length") == headers.end())
+        {
+            std::ostringstream len;
+            len << body.size();
+            out << "Content-Length: " << len.str() << "\r\n";
+        }
+
+        out << "Connection: close\r\n";
+        out << "\r\n";
+        out << body;
+        return out.str();
+    }
+};
+
+class LocationConfig
+{
+public:
+    std::string path;
+
+    std::string root;
+
+    std::string index;
+
+    std::vector<std::string> allowed_methods;
+
+    bool autoindex;
+
+    std::string upload_store;
+
+    // allow_upload — is POST upload permitted at this location?
+    // Set by "allow_upload on;" in location block.
+    // Ilyas checks this in handlePOST before saving files.
+    bool allow_upload;
+
+    // upload_path — where to save uploaded files.
+    // Set by "upload_path www/upload;" in location block.
+    // Used by Ilyas's handlePOST as baseDir.
+    std::string upload_path;
+
+    // allow_delete — is DELETE permitted at this location?
+    // Set by "allow_delete on;" in location block.
+    // Ilyas checks this in handleDELETE before removing files.
+    bool allow_delete;
+
+    int         redirect_code;
+    std::string redirect;
+
+    std::map<std::string, std::string> cgi_pass;
+    
+    bool        internal;
+
+    LocationConfig();
+};
+
+class ServerConfig
+{
+public:
+    std::string host;
+
+    int port;
+
+    std::string server_name;
+
+    std::string root;
+
+    std::string index;
+
+    size_t client_max_body_size;
+
+    std::map<int, std::string> error_pages;
+
+    std::vector<LocationConfig> locations;
+
+    LocationConfig matchLocation(const std::string& path) const;
+
+
+    ServerConfig();
+};
+
+class ConfigParser
+{
+public:
+    explicit ConfigParser(const std::string &filename);
+
+    bool parse();
+
+    const std::vector<ServerConfig> &getServers() const;
+
+private:
+
+    std::string               _filename;
+    std::vector<std::string>  _tokens;
+    size_t                    _pos;
+    std::vector<ServerConfig> _servers;
+
+    bool tokenize();
+
+    bool parseServer(ServerConfig &server);
+
+    bool parseLocation(ServerConfig &server, LocationConfig &location);
+
+    const std::string &current() const;
+    std::string        consume();
+    bool               isEnd()   const;
+    bool               expect(const std::string &expected);
+
+    size_t parseSize(const std::string &str) const;
+    void   error(const std::string &msg)    const;
+};
+
+class CGIHandler
+{
+public:
+
+    CGIHandler(const HttpRequest &request,
+               const std::string &script_path,
+               const std::string &cgi_executable);
+
+    std::string execute();
+
+private:
+
+    HttpRequest _request;
+    std::string _script_path;
+    std::string _cgi_executable;
+
+    char      **buildEnv()                                  const;
+    void        freeEnv(char **env)                         const;
+    std::string unchunkBody(const std::string &chunked)     const;
+    std::string wrapResponse(const std::string &cgi_output) const;
+};
+
+
+#endif
