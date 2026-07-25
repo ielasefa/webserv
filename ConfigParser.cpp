@@ -5,7 +5,7 @@ ConfigParser::ConfigParser(const std::string &filename)
     : _filename(filename), _pos(0)
 {
 }
-// read the config file and and split it into tokenze
+// 9ra  lconfig file w spliti  into tokenze
 bool ConfigParser::tokenize()
 {
     int fd = open(_filename.c_str(), O_RDONLY);
@@ -391,7 +391,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'return'"); return false; }
 
-            // If next token starts with a digit it's the code, else default 302
+            // If next token starts with a digit rahe code, else default 302
             const std::string &first = current();
             bool looksLikeCode = !first.empty() &&
                 std::isdigit(static_cast<unsigned char>(first[0]));
