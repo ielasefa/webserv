@@ -3,14 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   routing.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaloulid <jaloulid@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/14 19:14:11 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/02 21:50:39 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/26 00:48:48 by jaloulid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../webserv.hpp"
+
+// Forward declaration for function overloading
+std::string buildPath(const std::string& requestPath,
+                      const LocationConfig& loc,
+                      bool appendIndex);
 
 LocationConfig ServerConfig::matchLocation(const std::string& path) const
 {

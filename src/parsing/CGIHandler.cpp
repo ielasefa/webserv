@@ -1,10 +1,6 @@
-#include "webserv.hpp"
+#include "../../webserv.hpp"
 
-<<<<<<< HEAD:src/parsing/CGIHandler.cpp
 // static const int UNUSED_CGI_TIMEOUT = 10;
-=======
-// static const int unsed cgi timeout = 10;
->>>>>>> jaafar:CGIHandler.cpp
 
 CGIHandler::CGIHandler(const HttpRequest  &request,
                        const std::string  &script_path,
@@ -230,4 +226,33 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
     fd_out = pipe_out[0]; 
 
     return true;
+}
+
+std::string CGIHandler::execute()
+{
+    int fd_in = -1, fd_out = -1;
+    pid_t pid = -1;
+    
+    // Start CGI process
+    if (!startCGI(fd_in, fd_out, pid))
+        return "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+    
+    // Write request body to CGI stdin if needed
+    if (!_request.body.empty())
+        write(fd_in, _request.body.c_str(), _request.body.size());
+    close(fd_in);
+    
+    // Read CGI output
+    std::string cgi_output;
+    char buffer[4096];
+    ssize_t len;
+    while ((len = read(fd_out, buffer, sizeof(buffer))) > 0)
+        cgi_output.append(buffer, len);
+    close(fd_out);
+    
+    // Wait for CGI process to complete
+    waitpid(pid, NULL, 0);
+    
+    // Wrap response
+    return wrapResponse(cgi_output);
 }

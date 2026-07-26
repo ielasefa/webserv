@@ -186,5 +186,7 @@ private:
     std::string wrapResponse(const std::string &cgi_output) const;
 };
 
+int     init_socket(const ServerConfig& serv);
+void    multiplexing(int sfd, const ServerConfig& serv);
 
 #endif // PARSING_CONFIG_HPP

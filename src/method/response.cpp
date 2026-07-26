@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaloulid <jaloulid@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/02 21:41:28 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/02 21:41:29 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/07/26 00:48:48 by jaloulid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,4 +80,12 @@ std::string buildResponse(int code,
     res += body;
 
     return res;
+}
+
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime)
+{
+    std::vector<std::string> emptyHeaders;
+    return buildResponse(code, body, mime, emptyHeaders);
 }

@@ -20,14 +20,29 @@
 #include <sys/stat.h>       
 #include <sys/wait.h>       
 #include <sys/time.h>       
+#include <sys/epoll.h>      
 #include <netinet/in.h>     
 #include <arpa/inet.h>      
 #include <dirent.h>         
+
 extern const int    BACKLOG;
 extern const int    POLL_TIMEOUT_MS;
 extern const int    CGI_TIMEOUT_S;
 extern const char  *DEFAULT_CONFIG_PATH;
 extern const int    READ_BUFFER_SIZE;
+
+struct t_header
+{
+    std::string first_line;
+    std::string other;
+};
+
+struct t_client
+{
+    int fd;
+    std::string req_buffer;
+    std::string res_buffer;
+};
 
 struct HttpRequest
 {
@@ -94,10 +109,17 @@ public:
 
     std::string upload_store;
 
+    int         redirect_code;
+    std::string redirect;
+
+    std::map<std::string, std::string> cgi_pass;
+    
+    bool        internal;
+
     // allow_upload — is POST upload permitted at this location?
     // Set by "allow_upload on;" in location block.
     // Ilyas checks this in handlePOST before saving files.
-    bool allow_upload;
+    bool        allow_upload;
 
     // upload_path — where to save uploaded files.
     // Set by "upload_path www/upload;" in location block.
@@ -107,14 +129,7 @@ public:
     // allow_delete — is DELETE permitted at this location?
     // Set by "allow_delete on;" in location block.
     // Ilyas checks this in handleDELETE before removing files.
-    bool allow_delete;
-
-    int         redirect_code;
-    std::string redirect;
-
-    std::map<std::string, std::string> cgi_pass;
-    
-    bool        internal;
+    bool        allow_delete;
 
     LocationConfig();
 };
@@ -184,6 +199,8 @@ public:
                const std::string &cgi_executable);
 
     std::string execute();
+    std::string getBody() const;
+    bool        startCGI(int &fd_in, int &fd_out, pid_t &pid);
 
 private:
 
@@ -197,5 +214,49 @@ private:
     std::string wrapResponse(const std::string &cgi_output) const;
 };
 
+int     init_socket(const ServerConfig& serv);
+void    multiplexing(int sfd, const ServerConfig& serv);
+
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime,
+                          const std::vector<std::string>& extraHeaders);
+std::string buildPath(const std::string& requestPath,
+                      const LocationConfig& loc);
+std::string buildPath(const std::string& requestPath,
+                      const LocationConfig& loc,
+                      bool appendIndex);
+
+bool        isFile(const std::string& path);
+bool        isDirectory(const std::string& path);
+bool        isSymlink(const std::string& path);
+std::string readFile(const std::string& path);
+std::string getMimeType(const std::string& path);
+std::string normalizePath(const std::string& path);
+std::string statusMessage(int code);
+std::string redirectResponse(int code, const std::string& url);
+bool        isMethodAllowed(const LocationConfig& loc, const std::string& method);
+std::string buildAllowHeader(const LocationConfig& loc);
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime);
+std::string buildResponse(int code,
+                          const std::string& body,
+                          const std::string& mime,
+                          const std::vector<std::string>& extraHeaders);
+std::string errorResponse(int code,
+                          const std::string& allowHeader,
+                          const ServerConfig* config);
+std::vector<std::string> readDirectory(const std::string& path);
+std::string generateAutoIndex(const std::string& requestPath,
+                              const std::string& directoryPath,
+                              const std::vector<std::string>& files);
+
+std::string dispatchRequest(const HttpRequest& req, const ServerConfig& Serv);
+std::string handleRequest(const HttpRequest& req,
+                          const LocationConfig& loc,
+                          const ServerConfig* config);
+std::string handlePOST(const HttpRequest& req,
+                       const ServerConfig& serv);
 
 #endif
