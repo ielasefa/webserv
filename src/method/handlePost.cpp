@@ -74,10 +74,10 @@ std::string handlePOST(const HttpRequest& req,
     if (serv.client_max_body_size > 0 &&
         contentLength > serv.client_max_body_size)
         return errorResponse(413, "", &serv);
-
+    // std::cout << req.body.size() << "\n" << contentLength << "\n" << req.body << std::endl;
     if (req.body.size() != contentLength)
         return errorResponse(400, "", &serv);
-
+    // std::cout << "ahah zid 1" << std::endl;
     std::string baseDir;
     if (loc.allow_upload)
     {

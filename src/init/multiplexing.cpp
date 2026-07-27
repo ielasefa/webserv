@@ -20,8 +20,12 @@ HttpRequest	parsing_header(std::string req_buffer)
 			req.headers[line.substr(0, line.find(": "))] = line.substr(line.find(": ") + 2);
 			tmp = tmp.substr(tmp.find("\r\n") + 2);
 		}
-		if (tmp.find("\r\n\r\n") != std::string::npos)
-			req.body = tmp.substr(tmp.find("\r\n\r\n") + 4);
+		// std::cout << tmp << std::endl;
+		if (tmp.find("\r\n") != std::string::npos)
+		{
+			// std::cout << "in" << std::endl;
+			req.body = tmp.substr(tmp.find("\r\n") + 2);
+		}
 		std::cout << "["<< req.body << "]" << std::endl;
 	}
 	return (req);
