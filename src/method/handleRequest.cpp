@@ -71,10 +71,6 @@ std::string handleDELETE(const HttpRequest& req, const ServerConfig& serv)
         return errorResponse(405, "", &serv);
 
     std::string target;
-
-    /*
-     * Uploaded files are stored in upload_path.
-     */
     if (loc.allow_upload && !loc.upload_path.empty())
     {
         std::string filename = cleanPath;
@@ -128,7 +124,12 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
     if (loc.root.empty())
         return errorResponse(500, "", &Serv);
     HttpRequest cleanReq = req;
-    cleanReq.path = cleanPath;
+
+    if (!req.path.empty() && req.path[req.path.size() - 1] == '/' && cleanPath != "/") 
+        cleanReq.path = cleanPath + "/";
+    else
+        cleanReq.path = cleanPath;
+    
     std::string allowHeader = buildAllowHeader(loc);
     
     if (!isMethodAllowed(loc, cleanReq.method))

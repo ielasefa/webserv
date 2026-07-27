@@ -55,7 +55,16 @@ std::string handlePOST(const HttpRequest& req,
     if (cleanPath.find("..") != std::string::npos)
         return errorResponse(403, "", &serv);
 
-    LocationConfig loc = serv.matchLocation(req.path);
+        
+    LocationConfig loc = serv.matchLocation(cleanPath);
+    std::cout << "\n========== POST DEBUG ==========\n";
+std::cout << "req.path          = [" << req.path << "]\n";
+std::cout << "cleanPath         = [" << cleanPath << "]\n";
+std::cout << "loc.path          = [" << loc.path << "]\n";
+std::cout << "loc.root          = [" << loc.root << "]\n";
+std::cout << "loc.upload_path   = [" << loc.upload_path << "]\n";
+std::cout << "loc.allow_upload  = [" << loc.allow_upload << "]\n";
+std::cout << "================================\n";
     std::map<std::string, std::string>::const_iterator it =
         req.headers.find("Content-Length");
 
@@ -119,6 +128,7 @@ std::string handlePOST(const HttpRequest& req,
         if (isDirectory(path) || isSymlink(path))
             return errorResponse(403, "", &serv);
 
+            
         std::ofstream file(path.c_str(), std::ios::binary);
         if (!file.is_open())
             return errorResponse(500, "", &serv);
@@ -155,6 +165,9 @@ std::string handlePOST(const HttpRequest& req,
     if (isDirectory(target) || isSymlink(target))
         return errorResponse(403, "", &serv);
 
+    std::cout << "baseDir = [" << baseDir << "]\n";
+std::cout << "name    = [" << name << "]\n";
+std::cout << "target  = [" << target << "]\n";
     std::ofstream file(target.c_str(), std::ios::binary);
     if (!file.is_open())
         return errorResponse(500, "", &serv);
