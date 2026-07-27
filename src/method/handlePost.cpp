@@ -55,50 +55,30 @@ std::string handlePOST(const HttpRequest& req,
     if (cleanPath.find("..") != std::string::npos)
         return errorResponse(403, "", &serv);
 
-        
-    LocationConfig loc = serv.matchLocation(cleanPath);
-    std::cout << "\n========== POST DEBUG ==========\n";
-std::cout << "req.path          = [" << req.path << "]\n";
-std::cout << "cleanPath         = [" << cleanPath << "]\n";
-std::cout << "loc.path          = [" << loc.path << "]\n";
-std::cout << "loc.root          = [" << loc.root << "]\n";
-std::cout << "loc.upload_path   = [" << loc.upload_path << "]\n";
-std::cout << "loc.allow_upload  = [" << loc.allow_upload << "]\n";
-std::cout << "================================\n";
+    LocationConfig loc = serv.matchLocation(req.path);
     std::map<std::string, std::string>::const_iterator it =
         req.headers.find("Content-Length");
 
 
-    // for (std::map<std::string, std::string>::const_iterator it = req.headers.begin();
-    // it != req.headers.end(); ++it)
-    //     std::cout << "[" << it->first << "] = " << it->second << std::endl;
     if (it == req.headers.end())
-    {
-        // std::cout << "---------hnaaaaa 411----------\n";///////////////////
         return errorResponse(411, "", &serv);
-    }
 
     size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
 
     if (serv.client_max_body_size > 0 &&
         contentLength > serv.client_max_body_size)
         return errorResponse(413, "", &serv);
-    // std::cout << req.body.size() << "\n" << contentLength << "\n" << req.body << std::endl;
     if (req.body.size() != contentLength)
         return errorResponse(400, "", &serv);
-    // std::cout << "ahah zid 1" << std::endl;
     std::string baseDir;
     if (loc.allow_upload)
     {
         if (loc.upload_path.empty())
             return errorResponse(500, "", &serv);
-
         baseDir = loc.upload_path;
     }
     else
-    {
         baseDir = buildPath(cleanPath, loc);
-    }
 
     if (loc.allow_upload && !isDirectory(baseDir))
         return errorResponse(500, "", &serv);
@@ -128,7 +108,6 @@ std::cout << "================================\n";
         if (isDirectory(path) || isSymlink(path))
             return errorResponse(403, "", &serv);
 
-            
         std::ofstream file(path.c_str(), std::ios::binary);
         if (!file.is_open())
             return errorResponse(500, "", &serv);
@@ -165,9 +144,6 @@ std::cout << "================================\n";
     if (isDirectory(target) || isSymlink(target))
         return errorResponse(403, "", &serv);
 
-    std::cout << "baseDir = [" << baseDir << "]\n";
-std::cout << "name    = [" << name << "]\n";
-std::cout << "target  = [" << target << "]\n";
     std::ofstream file(target.c_str(), std::ios::binary);
     if (!file.is_open())
         return errorResponse(500, "", &serv);

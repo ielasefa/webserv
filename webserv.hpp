@@ -242,6 +242,14 @@ std::string buildResponse(int code,
                           const std::string& mime);
  bool isInsideRoot(const std::string& path, const std::string& root);
 bool fileExists(const std::string& path);
+
+ std::string handleMultipart(
+    const HttpRequest& req,
+    const ServerConfig& serv,
+    const std::string& baseDir);
+ std::string git (const std::string& body);
+ std::string getHeaderValue(const std::string& body,
+                                  const std::string& header);
 std::string buildResponse(int code,
                           const std::string& body,
                           const std::string& mime,

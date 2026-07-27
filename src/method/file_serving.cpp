@@ -48,36 +48,13 @@ std::string handleRequest(const HttpRequest& req,
 {
     std::string cleanPath = normalizePath(req.path);
 
-    /*
-     * Never allow traversal.
-     */
     if (cleanPath.find("..") != std::string::npos)
         return errorResponse(403, "", config);
 
-    /*
-     * Keep the trailing slash information.
-     *
-     * normalizePath("/upload/") gives "/upload",
-     * but "/upload/" must still be considered a directory request.
-     */
     bool hasSlash =
         !req.path.empty() &&
         req.path[req.path.size() - 1] == '/';
 
-    /*
-     * Build filesystem path.
-     *
-     * Normal location:
-     *     /index.html
-     *         -> loc.root/index.html
-     *
-     * Upload location:
-     *     /upload/
-     *         -> loc.upload_path/
-     *
-     *     /upload/simple.txt
-     *         -> loc.upload_path/simple.txt
-     */
     std::string fullPath;
 
     if (loc.allow_upload && !loc.upload_path.empty())
@@ -108,16 +85,6 @@ std::string handleRequest(const HttpRequest& req,
         fullPath = buildPath(cleanPath, loc);
     }
 
-    std::cout << "\n========== GET DEBUG ==========\n";
-    std::cout << "req.path        = [" << req.path << "]\n";
-    std::cout << "cleanPath       = [" << cleanPath << "]\n";
-    std::cout << "loc.path        = [" << loc.path << "]\n";
-    std::cout << "loc.root        = [" << loc.root << "]\n";
-    std::cout << "loc.upload_path = [" << loc.upload_path << "]\n";
-    std::cout << "allow_upload    = [" << loc.allow_upload << "]\n";
-    std::cout << "fullPath        = [" << fullPath << "]\n";
-    std::cout << "===============================\n";
-
     if (isSymlink(fullPath))
         return errorResponse(403, "", config);
     if (isFile(fullPath))
@@ -145,9 +112,6 @@ std::string handleRequest(const HttpRequest& req,
         if (isFile(indexPath))
             return serveFile(indexPath, config);
 
-        std::cout << "isDirectory = " << isDirectory(fullPath) << std::endl;
-std::cout << "autoindex   = " << loc.autoindex << std::endl;
-std::cout << "index       = [" << loc.index << "]" << std::endl;
         if (!loc.autoindex)
             return errorResponse(403, "", config);
 

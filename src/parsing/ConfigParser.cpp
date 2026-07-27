@@ -210,39 +210,23 @@ bool ConfigParser::parseServer(ServerConfig &server)
             return true;
 
         else if (token == "listen")
-{
-    if (isEnd())
-    {
-        error("Missing value after 'listen'");
-        return false;
-    }
+        {
+            if (isEnd()) { error("Missing value after 'listen'"); return false; }
 
-    std::string value = consume();
+            std::string value = consume();
+            size_t colon = value.find(':');
+            if (colon != std::string::npos)
+            {
+                server.host = value.substr(0, colon);
+                server.port = std::atoi(value.substr(colon + 1).c_str());
+            }
+            else
+            {
+                server.port = std::atoi(value.c_str());
+            }
 
-    std::cout << "[LISTEN DEBUG] value = ["
-              << value << "] size = "
-              << value.size() << std::endl;
-
-    size_t colon = value.find(':');
-
-    if (colon != std::string::npos)
-    {
-        std::cout << "[LISTEN DEBUG] colon = "
-                  << colon << std::endl;
-
-        server.host = value.substr(0, colon);
-        server.port = std::atoi(
-            value.substr(colon + 1).c_str()
-        );
-    }
-    else
-    {
-        server.port = std::atoi(value.c_str());
-    }
-
-    if (!expect(";"))
-        return false;
-}
+            if (!expect(";")) return false;
+        }
         else if (token == "server_name")
         {
             if (isEnd()) { error("Missing value after 'server_name'"); return false; }
