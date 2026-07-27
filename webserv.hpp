@@ -240,6 +240,8 @@ std::string buildAllowHeader(const LocationConfig& loc);
 std::string buildResponse(int code,
                           const std::string& body,
                           const std::string& mime);
+ bool isInsideRoot(const std::string& path, const std::string& root);
+bool fileExists(const std::string& path);
 std::string buildResponse(int code,
                           const std::string& body,
                           const std::string& mime,

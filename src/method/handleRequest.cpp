@@ -12,7 +12,7 @@
 
 #include "../../webserv.hpp"
 
-static bool isInsideRoot(const std::string& path, const std::string& root)
+ bool isInsideRoot(const std::string& path, const std::string& root)
 {
     char realRoot[PATH_MAX];
     char realPath[PATH_MAX];
@@ -55,39 +55,63 @@ static bool isInsideRoot(const std::string& path, const std::string& root)
     return false;
 }
 
-std::string handleDELETE(const HttpRequest& req, const LocationConfig& loc,
-                         const ServerConfig* config)
+std::string handleDELETE(const HttpRequest& req, const ServerConfig& serv)
 {
-    // if (!loc.allow_delete)
-    //     return errorResponse(403);
+    if (req.path.empty())
+        return errorResponse(400, "", &serv);
+
+    if (req.path.find("..") != std::string::npos)
+        return errorResponse(403, "", &serv);
 
     std::string cleanPath = normalizePath(req.path);
 
-    if (cleanPath.find("..") != std::string::npos)
-        return errorResponse(403, "", config);
+    LocationConfig loc = serv.matchLocation(cleanPath);
 
-    std::string fullPath = buildPath(cleanPath, loc);
+    if (!loc.allow_delete)
+        return errorResponse(405, "", &serv);
 
-    if (!isInsideRoot(fullPath, loc.root))
-        return errorResponse(403, "", config);
+    std::string target;
 
-    if (isSymlink(fullPath))
-        return errorResponse(403, "", config);
+    /*
+     * Uploaded files are stored in upload_path.
+     */
+    if (loc.allow_upload && !loc.upload_path.empty())
+    {
+        std::string filename = cleanPath;
 
-    struct stat st;
-    if (stat(fullPath.c_str(), &st) != 0)
-        return errorResponse(404, "", config);
+        size_t slash = filename.find_last_of('/');
+        if (slash != std::string::npos)
+            filename = filename.substr(slash + 1);
 
-    if (S_ISDIR(st.st_mode))
-        return errorResponse(403, "", config);
+        if (filename.empty())
+            return errorResponse(400, "", &serv);
 
-    if (access(fullPath.c_str(), W_OK) != 0)
-        return errorResponse(403, "", config);
+        if (filename.find("..") != std::string::npos ||
+            filename.find('/') != std::string::npos)
+            return errorResponse(403, "", &serv);
 
-    if (std::remove(fullPath.c_str()) != 0)
-        return errorResponse(500, "", config);
+        target = loc.upload_path;
 
-    return buildResponse(204, "", "");  
+        if (!target.empty() && target[target.size() - 1] != '/')
+            target += '/';
+
+        target += filename;
+    }
+    else
+    {
+        target = buildPath(cleanPath, loc);
+    }
+
+    if (!fileExists(target))
+        return errorResponse(404, "", &serv);
+
+    if (isDirectory(target) || isSymlink(target))
+        return errorResponse(403, "", &serv);
+
+    if (std::remove(target.c_str()) != 0)
+        return errorResponse(500, "", &serv);
+
+    return buildResponse(204, "", "");
 }
 
 std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
@@ -133,7 +157,7 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
         return handlePOST(cleanReq, Serv);
     
     if (cleanReq.method == "DELETE")
-        return handleDELETE(cleanReq, loc, &Serv);
+        return handleDELETE(cleanReq, Serv);
     
     return errorResponse(405, allowHeader, &Serv);
 }

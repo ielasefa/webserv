@@ -9,7 +9,6 @@ HttpRequest	parsing_header(std::string req_buffer)
 	req.method = header.first_line.substr(0, header.first_line.find(" "));
 	header.other = header.first_line.substr(header.first_line.find(" ") + 1);
 	req.path = header.other.substr(0, header.other.find(" "));
-	// header.version = header.other.substr(header.other.find(" ") + 1);
 
 	if (req.method == "POST")
 	{
@@ -18,23 +17,13 @@ HttpRequest	parsing_header(std::string req_buffer)
 		while (tmp.find("\r\n\r\n") != std::string::npos)
 		{
 			line = tmp.substr(0, tmp.find("\r\n"));
-			// std::cout << "******************" << tmp << "******************" << std::endl;
 			req.headers[line.substr(0, line.find(": "))] = line.substr(line.find(": ") + 2);
-			// if (line.substr(line.find(": ") + 2).find("\r") != std::string::npos)
-			// 	std::cout << "kaynaaaaaa";
-			// std::cout << line << std::endl;
-			// if (tmp.find("\r\n\r\n"))
-			// 	std::cout << "wtf";
 			tmp = tmp.substr(tmp.find("\r\n") + 2);
 		}
-		if (tmp.find("\r\n\r\n"))
-			req.body = tmp.substr(tmp.find("\r\n\r\n") + 3);
+		if (tmp.find("\r\n\r\n") != std::string::npos)
+			req.body = tmp.substr(tmp.find("\r\n\r\n") + 4);
 		std::cout << "["<< req.body << "]" << std::endl;
 	}
-	// std::cout << "[" << req.headers["Sec-Fetch-Site"] << "]" << std::endl;
-	// req.headers.insert({header.method, header.version});
-	// std::cout << req.headers[header.method] << std::endl;
-	// std::cout << std::endl;
 	return (req);
 }
 
