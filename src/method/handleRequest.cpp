@@ -137,6 +137,7 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
     size_t dotPos = cleanPath.find_last_of('.');
     if (dotPos != std::string::npos)
     {
+        
         std::string ext = cleanPath.substr(dotPos);
         if (loc.cgi_pass.find(ext) != loc.cgi_pass.end())
         {
@@ -144,8 +145,9 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
             if (!isFile(scriptPath))
                 return errorResponse(404, "", &Serv);
             
-            CGIHandler cgi(cleanReq, scriptPath, loc.cgi_pass.at(ext));
-            return cgi.execute();
+            // CGIHandler cgi(cleanReq, scriptPath, loc.cgi_pass.at(ext));
+            // std::cout << "cgi hnaaaaa" << std::endl;
+            // return cgi.execute();
         }
     }
     
