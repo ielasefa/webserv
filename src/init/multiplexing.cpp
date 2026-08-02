@@ -26,23 +26,35 @@ HttpRequest	parsing_header(std::string req_buffer)
 			// std::cout << "in" << std::endl;
 			req.body = tmp.substr(tmp.find("\r\n") + 2);
 		}
-		std::cout << "["<< req.body << "]" << std::endl;
+		// std::cout << "["<< req.body << "]" << std::endl;
 	}
 	return (req);
 }
 
-void	add_epoll(int epfd, int fd)
+void	add_epoll(int epfd, int fd, bool type)
 {
 	struct epoll_event ev;
-	ev.events = EPOLLIN;
+	if (type)
+		ev.events = EPOLLOUT;
+	else
+		ev.events = EPOLLIN;
 	ev.data.fd = fd;
 	epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev);
+}
+void	handling_cgi(HttpRequest &request, std::string script_path,
+					std::string cgi_executable, t_client &c, int epfd)
+{
+	CGIHandler cgi(request, script_path, cgi_executable);
+	cgi.startCGI(c.fd_in, c.fd_out, c.pid);
+	c.is_cgi = 1;
+	add_epoll(epfd, c.fd_in, 1);
+	add_epoll(epfd, c.fd_out, 0);
 }
 
 void	multiplexing(int sfd ,const ServerConfig& serv)
 {
 	int epfd = epoll_create(1);
-	add_epoll(epfd, sfd);
+	add_epoll(epfd, sfd, 0);
 	struct epoll_event events[1024];
 	std::map <int, t_client> clients;
 
@@ -59,35 +71,96 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 				t_client cl;
 				cl.fd = cfd;
 				clients[cfd] = cl;
-				add_epoll(epfd, cfd);
+				add_epoll(epfd, cfd, 0);
 			}
 			else
 			{
-				char buffer[1024] = "";
-				int len = recv(fd, buffer, sizeof(buffer), 0);
 				t_client &c = clients[fd];
-				c.req_buffer += std::string(buffer, len);
-
-				if (len <= 0)
+				// std::cout << "is_cgi=" << c.is_cgi << " fd=" << fd << std::endl;
+				// std::cout << "fd=" << fd << " is_cgi=" << c.is_cgi << " c.fd_out=" << c.fd_out << std::endl;
+				if (c.is_cgi && fd == c.fd_out)
 				{
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
+					// std::cout << "c.fd=" << c.fd << std::endl;
+					char buffer[1024] = "";
+					int len = read(c.fd_out, buffer, sizeof(buffer));
+					c.cgi_output += std::string(buffer, len);
+					// std::cout << "len=" << len << std::endl;
+					// std::cout << c.cgi_output << std::endl;
+					if (len == 0)
+					{
+						// std::cout << "wsl hna fd_out" << std::endl;
+						t_client &c_original = clients[c.fd];
+						// std::cout << "c.fd=" << c.fd << "\nc_original==" << c_original.fd << std::endl;
+						c_original.res_buffer = CGIHandler::wrapResponse(c.cgi_output);
+						write(c_original.fd, c_original.res_buffer.c_str(), c_original.res_buffer.size());
+						epoll_ctl(epfd, EPOLL_CTL_DEL, c_original.fd, NULL);
+						clients.erase(c_original.fd);
+						close(c_original.fd);
+						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+						clients.erase(fd);
+						close(fd);
+					}
 				}
-				else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
+				else if (c.is_cgi && fd == c.fd_in)
 				{
-					// std::cout << "port == " << serv.port << std::endl;
+					// std::cout << "wsl hna fd_in" << std::endl;
+					std::string body = c.req_buffer.substr(c.req_buffer.find("\r\n\r\n") + 4);
+					write(c.fd_in, body.c_str(), body.size());
+					epoll_ctl(epfd, EPOLL_CTL_DEL, c.fd_in, NULL);
+					clients.erase(c.fd_in);
+					close(c.fd_in);
+				}
+				else
+				{
+					char buffer[1024] = "";
+					int len = recv(fd, buffer, sizeof(buffer), 0);
+					c.req_buffer += std::string(buffer, len);
+	
+					if (len <= 0)
+					{
+						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+						clients.erase(fd);
+						close(fd);
+					}
+					else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
+					{
+						HttpRequest req = parsing_header(c.req_buffer);
+						if (req.path.find(".py") != std::string::npos)
+						{
+							// handling_cgi(req, "f", "f", c, epfd);
+							CGIHandler cgi(req, "/home/ayoub/Desktop/github/webserv/www/script.py", "/usr/bin/python3");
+							cgi.startCGI(c.fd_in, c.fd_out, c.pid);
+							// std::cout << "clients[fd].fd=" << clients[fd].fd << std::endl;
+							// std::cout << "wsl hna mor startCGI" << std::endl;
+							c.is_cgi = 1;
+							add_epoll(epfd, c.fd_in, 1);
+							add_epoll(epfd, c.fd_out, 0);
+							
+							int c_original = fd;
+							int tmp_fd_in = c.fd_in;
+							int tmp_fd_out = c.fd_out;
+							clients[tmp_fd_in] = c;
+							clients[tmp_fd_out] = c;
+							clients[tmp_fd_in].fd = c_original;
+							clients[tmp_fd_out].fd = c_original;
 
-					// std::cout << c.req_buffer << std::endl;//
-					// std::cout << "----------------\n" << c.req_buffer << "\n----------------\n";
-					HttpRequest req = parsing_header(c.req_buffer);
-					// std::cout << "smaykoooooooooooom" << std::endl;
-					c.res_buffer = dispatchRequest(req , serv);
-					// std::cout << "-------res_buffer---------\n" << c.res_buffer << "\n----------------\n";
-					write(fd, c.res_buffer.c_str(), c.res_buffer.size());
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					clients.erase(fd);
-					close(fd);
+							// struct epoll_event ev;
+							// ev.events = EPOLLOUT;
+							// ev.data.fd = fd;
+							// epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
+							epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+							// std::cout << "clients[c.fd_out].fd=" << clients[c.fd_out].fd << std::endl;
+						}
+						else
+						{
+							c.res_buffer = dispatchRequest(req , serv);
+							write(fd, c.res_buffer.c_str(), c.res_buffer.size());
+							epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+							clients.erase(fd);
+							close(fd);
+	
+						}
+					}
 				}
 			}
 		}

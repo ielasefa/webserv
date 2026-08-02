@@ -117,7 +117,7 @@ void CGIHandler::freeEnv(char **env) const
     delete[] env;
 }
 
-std::string CGIHandler::wrapResponse(const std::string &cgi_output) const
+std::string CGIHandler::wrapResponse(const std::string &cgi_output)
 {
     bool has_headers = (cgi_output.find("\r\n\r\n") != std::string::npos ||
                         cgi_output.find("\n\n")     != std::string::npos);
@@ -176,7 +176,7 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 
     char **env = buildEnv();
     pid = fork();
-
+    // std::cout << "right after fork" << std::endl;
     if (pid < 0)
     {
         std::cerr << "[CGI] fork() failed" << std::endl;
@@ -206,8 +206,9 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
         argv[1] = strdup(_script_path.c_str());
         argv[2] = NULL;
 
+        // std::cout << "cgi_exec=" << _cgi_executable << "\nscript_path=" << _script_path << std::endl;
         execve(_cgi_executable.c_str(), argv, env);
-        
+        // perror("execve");
         //if the excuve fails
         free(argv[0]);
         free(argv[1]);

@@ -42,6 +42,12 @@ struct t_client
     int fd;
     std::string req_buffer;
     std::string res_buffer;
+
+    int fd_in;
+    int fd_out;
+    std::string cgi_output;
+    pid_t pid;
+    bool is_cgi;
 };
 
 struct HttpRequest
@@ -201,6 +207,7 @@ public:
     std::string execute();
     std::string getBody() const;
     bool        startCGI(int &fd_in, int &fd_out, pid_t &pid);
+    static std::string wrapResponse(const std::string &cgi_output);//to static
 
 private:
 
@@ -211,7 +218,6 @@ private:
     char      **buildEnv()                                  const;
     void        freeEnv(char **env)                         const;
     std::string unchunkBody(const std::string &chunked)     const;
-    std::string wrapResponse(const std::string &cgi_output) const;
 };
 
 int     init_socket(const ServerConfig& serv);
