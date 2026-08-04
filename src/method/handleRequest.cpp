@@ -114,7 +114,9 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
 {
     std::string cleanPath = normalizePath(req.path);
     LocationConfig loc = Serv.matchLocation(cleanPath);
-    
+
+    // std::cout << "cleanPath=[" << cleanPath << "]" << std::endl;
+    // std::cout << "req.path=[" << req.path << "]" << std::endl;
     if (loc.internal)
         return errorResponse(404, "", &Serv);
     
@@ -145,7 +147,7 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
             std::string scriptPath = buildPath(cleanPath, loc);
             if (!isFile(scriptPath))
                 return errorResponse(404, "", &Serv);
-            
+            // std::cout << "entered 2" << std::endl;
             // CGIHandler cgi(cleanReq, scriptPath, loc.cgi_pass.at(ext));
             // std::cout << "cgi hnaaaaa" << std::endl;
             // return cgi.execute();

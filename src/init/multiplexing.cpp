@@ -115,7 +115,6 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 					char buffer[1024] = "";
 					int len = recv(fd, buffer, sizeof(buffer), 0);
 					c.req_buffer += std::string(buffer, len);
-	
 					if (len <= 0)
 					{
 						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
@@ -125,10 +124,20 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 					else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
 					{
 						HttpRequest req = parsing_header(c.req_buffer);
+						LocationConfig loc = serv.matchLocation(req.path);
+						// std::cout << loc.cgi_pass.first << std::endl;
+
+						// for (std::map<std::string, std::string>::iterator it = loc.cgi_pass.begin(); it != loc.cgi_pass.end(); ++it)
+						// 	std::cout << it->first << " " << it->second << std::endl;
+
 						if (req.path.find(".py") != std::string::npos)
 						{
 							// handling_cgi(req, "f", "f", c, epfd);
-							CGIHandler cgi(req, "/home/ayoub/Desktop/github/webserv/www/script.py", "/usr/bin/python3");
+							std::string scriptPath = buildPath(req.path, loc);
+							std::cout << scriptPath << std::endl;
+            				// if (!isFile(scriptPath))
+                			// 	return errorResponse(404, "", &serv);
+							CGIHandler cgi(req, scriptPath, loc.cgi_pass.at(".py"));
 							cgi.startCGI(c.fd_in, c.fd_out, c.pid);
 							// std::cout << "clients[fd].fd=" << clients[fd].fd << std::endl;
 							// std::cout << "wsl hna mor startCGI" << std::endl;
