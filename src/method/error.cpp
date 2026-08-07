@@ -33,7 +33,7 @@ std::string statusMessage(int code)
         case 405: return "Method Not Allowed";
         case 408: return "Request Timeout";
         case 409: return "Conflict";
-        case 411: return "Length Requiredddddd";//
+        case 411: return "Length Required";
         case 413: return "Payload Too Large";
 
         case 500: return "Internal Server Error";
