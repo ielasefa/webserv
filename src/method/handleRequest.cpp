@@ -137,23 +137,23 @@ std::string dispatchRequest(const HttpRequest& req ,const ServerConfig& Serv)
     if (!isMethodAllowed(loc, cleanReq.method))
         return errorResponse(405, allowHeader, &Serv);
     
-    size_t dotPos = cleanPath.find_last_of('.');
-    if (dotPos != std::string::npos)
-    {
+    // size_t dotPos = cleanPath.find_last_of('.');
+    // if (dotPos != std::string::npos)
+    // {
         
-        std::string ext = cleanPath.substr(dotPos);
-        if (loc.cgi_pass.find(ext) != loc.cgi_pass.end())
-        {
-            std::string scriptPath = buildPath(cleanPath, loc);
-            if (!isFile(scriptPath))
-                return errorResponse(404, "", &Serv);
-            // std::cout << "entered 2" << std::endl;
-            // CGIHandler cgi(cleanReq, scriptPath, loc.cgi_pass.at(ext));
-            // std::cout << "cgi hnaaaaa" << std::endl;
-            // return cgi.execute();
-        }
-    }
-    
+    //     std::string ext = cleanPath.substr(dotPos);
+    //     if (loc.cgi_pass.find(ext) != loc.cgi_pass.end())
+    //     {
+    //         std::string scriptPath = buildPath(cleanPath, loc);
+    //         if (!isFile(scriptPath))
+    //             return errorResponse(404, "", &Serv);
+    //         // std::cout << "entered 2" << std::endl;
+    //         // CGIHandler cgi(cleanReq, scriptPath, loc.cgi_pass.at(ext));
+    //         // std::cout << "cgi hnaaaaa" << std::endl;
+    //         // return cgi.execute();
+    //     }
+    // }
+
     if (cleanReq.method == "GET"){
         return handleRequest(cleanReq, loc, &Serv);
     }

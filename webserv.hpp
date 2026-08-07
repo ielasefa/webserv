@@ -39,6 +39,8 @@ struct t_header
 
 struct t_client
 {
+    int listen_socket;
+
     int fd;
     std::string req_buffer;
     std::string res_buffer;
@@ -53,15 +55,11 @@ struct t_client
 struct HttpRequest
 {
     std::string method;
-
     std::string path;
-
     std::string query_string;
-
     std::string version;
-
+    std::string host;
     std::map<std::string, std::string> headers;
-
     std::string body;
 };
 
@@ -220,8 +218,12 @@ private:
     std::string unchunkBody(const std::string &chunked)     const;
 };
 
-int     init_socket(const ServerConfig& serv);
-void    multiplexing(int sfd, const ServerConfig& serv);
+// int     init_socket(const ServerConfig& serv);
+// void    multiplexing(int sfd, const ServerConfig& serv);
+std::vector<int> init_socket(const std::vector<ServerConfig>& servers,
+							std::map<int, std::vector<ServerConfig> >& socket_server);
+void	multiplexing(std::vector<int> &sockets,
+					std::map<int, std::vector<ServerConfig> >& socket_server);
 
 std::string buildResponse(int code,
                           const std::string& body,

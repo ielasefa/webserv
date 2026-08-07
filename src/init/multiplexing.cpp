@@ -2,14 +2,25 @@
 
 HttpRequest	parsing_header(std::string req_buffer)
 {
-	t_header header;
+	// t_header header;
 	HttpRequest req;
 
-	header.first_line = req_buffer.substr(0, req_buffer.find("\r"));
-	req.method = header.first_line.substr(0, header.first_line.find(" "));
-	header.other = header.first_line.substr(header.first_line.find(" ") + 1);
-	req.path = header.other.substr(0, header.other.find(" "));
+	std::string line = req_buffer.substr(0, req_buffer.find("\r"));
+	req.method = line.substr(0, line.find(" "));
+	std::string other = line.substr(line.find(" ") + 1);
+	req.path = other.substr(0, other.find(" "));
 
+	line = req_buffer.substr(line.size() + 2);
+	line = line.substr(0, line.find("\r\n"));
+	if (line.find(":") != std::string::npos)
+	{
+		req.host = line.substr(line.find(": ") + 2);
+		req.host = req.host.substr(0, req.host.find(":"));
+	}
+	else
+		req.host = line.substr(line.find(": ") + 2);
+
+	// std::cout << "[" << req.host << "]" << std::endl;
 	if (req.method == "POST")
 	{
 		std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
@@ -51,13 +62,25 @@ void	handling_cgi(HttpRequest &request, std::string script_path,
 	add_epoll(epfd, c.fd_out, 0);
 }
 
-void	multiplexing(int sfd ,const ServerConfig& serv)
+ServerConfig& selecting_server(HttpRequest& req, std::vector<ServerConfig>& servers)
+{
+	for (size_t i = 0; i < servers.size(); i++)
+	{
+		if (servers[i].server_name == req.host)
+			return (servers[i]);
+	}
+	return (servers[0]);
+}
+
+void	multiplexing(std::vector<int> &sockets,
+					std::map<int, std::vector<ServerConfig> >& socket_server)
 {
 	int epfd = epoll_create(1);
-	add_epoll(epfd, sfd, 0);
+	for (size_t s = 0; s < sockets.size(); s++)
+		add_epoll(epfd, sockets[s], 0);
 	struct epoll_event events[1024];
 	std::map <int, t_client> clients;
-
+	
 	while (1)
 	{
 		int e = epoll_wait(epfd, events, 2, -1);
@@ -65,10 +88,11 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 		{
 			int fd = events[i].data.fd;
 
-			if (fd == sfd)
+			if (socket_server.find(fd) != socket_server.end())
 			{
-				int cfd = accept(sfd, NULL, NULL);//protection
+				int cfd = accept(fd, NULL, NULL);//protection
 				t_client cl;
+				cl.listen_socket = fd;
 				cl.fd = cfd;
 				clients[cfd] = cl;
 				add_epoll(epfd, cfd, 0);
@@ -124,20 +148,28 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 					else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
 					{
 						HttpRequest req = parsing_header(c.req_buffer);
+						std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
+						ServerConfig& serv = selecting_server(req, servers);
 						LocationConfig loc = serv.matchLocation(req.path);
-						// std::cout << loc.cgi_pass.first << std::endl;
 
 						// for (std::map<std::string, std::string>::iterator it = loc.cgi_pass.begin(); it != loc.cgi_pass.end(); ++it)
 						// 	std::cout << it->first << " " << it->second << std::endl;
 
-						if (req.path.find(".py") != std::string::npos)
+						std::string ext = "";
+						size_t pos = req.path.find_last_of(".");
+						if (pos != std::string::npos)
+							ext = req.path.substr(pos);
+						// std::cout << ext << std::endl;
+						if (ext == ".py" || ext == ".php")
 						{
 							// handling_cgi(req, "f", "f", c, epfd);
+							// std::cout << "1-req.path=" << req.path << std::endl;
 							std::string scriptPath = buildPath(req.path, loc);
-							std::cout << scriptPath << std::endl;
-            				// if (!isFile(scriptPath))
-                			// 	return errorResponse(404, "", &serv);
-							CGIHandler cgi(req, scriptPath, loc.cgi_pass.at(".py"));
+							// scriptPath = "/home/ayoub/Desktop/github/webserv/www/cgi-bin/script.py";
+							// std::cout << "2-scriptPath=" << scriptPath << std::endl;
+							// if (!isFile(scriptPath))
+							// 	return errorResponse(404, "", &serv);
+							CGIHandler cgi(req, scriptPath, loc.cgi_pass.at(ext));
 							cgi.startCGI(c.fd_in, c.fd_out, c.pid);
 							// std::cout << "clients[fd].fd=" << clients[fd].fd << std::endl;
 							// std::cout << "wsl hna mor startCGI" << std::endl;
@@ -176,19 +208,40 @@ void	multiplexing(int sfd ,const ServerConfig& serv)
 	}
 }
 
-int	init_socket(const ServerConfig& serv)
+std::vector<int> init_socket(const std::vector<ServerConfig>& servers,
+							std::map<int, std::vector<ServerConfig> >& socket_server)
 {
-	int sfd = socket(AF_INET, SOCK_STREAM, 0);
+	std::vector<int> sockets;
 
-	int	opt = 1;
-	setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // reuse of the port
-	sockaddr_in	addr;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(serv.port);
-	addr.sin_addr.s_addr = INADDR_ANY;
-	if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)//
-		std::cout << "--shit--\n";
+	std::map<int, int> port_socket;
 
-	listen(sfd, 4);
-	return (sfd);
+	for (size_t i = 0; i < servers.size(); i++)
+	{
+		int sfd;
+
+		if (port_socket.find(servers[i].port) != port_socket.end())
+			sfd = port_socket[servers[i].port];
+		else
+		{
+			sfd = socket(AF_INET, SOCK_STREAM, 0);
+
+			int opt = 1;
+			setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+			sockaddr_in addr;
+			addr.sin_family = AF_INET;
+			addr.sin_port = htons(servers[i].port);
+			addr.sin_addr.s_addr = INADDR_ANY;
+
+			if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+				std::cout << "--shit--" << std::endl;
+
+			listen(sfd, 128);
+
+			sockets.push_back(sfd);
+			port_socket[servers[i].port] = sfd;
+		}
+		socket_server[sfd].push_back(servers[i]);
+	}
+	return sockets;
 }

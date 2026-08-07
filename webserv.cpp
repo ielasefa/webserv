@@ -36,8 +36,9 @@ int main(int argc, char *argv[])
 		}
 		
 		// std::cout << "Server started with " << servers.size() << " server(s)" << std::endl;
-		int	sfd = init_socket(servers[0]);
-		multiplexing(sfd , servers[0]);
+		std::map<int, std::vector<ServerConfig> > socket_server;
+		std::vector<int> sockets = init_socket(servers, socket_server);
+		multiplexing(sockets, socket_server);
 		// std::cout << "samaykom" << std::endl;
 	}
 	catch (const std::exception &e)

@@ -83,6 +83,7 @@ std::string handleRequest(const HttpRequest& req,
     else
     {
         fullPath = buildPath(cleanPath, loc);
+        // std::cout << "fullPath" << fullPath << std::endl;
     }
 
     if (isSymlink(fullPath))

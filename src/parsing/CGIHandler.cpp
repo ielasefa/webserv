@@ -147,8 +147,10 @@ std::string CGIHandler::getBody() const
 bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 {
     struct stat script_stat;
+    // _script_path = "www/cgi-bin/script.py";
     if (stat(_script_path.c_str(), &script_stat) != 0)
     {
+        // std::cout << _script_path << std::endl;
         std::cerr << "[CGI] Script not found: " << _script_path << std::endl;
         return false;
     }
@@ -201,9 +203,10 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
             exit(1);
         }
 
+        std::string script_name = _script_path.substr(_script_path.rfind("/") + 1);
         char *argv[3];
         argv[0] = strdup(_cgi_executable.c_str());
-        argv[1] = strdup(_script_path.c_str());
+        argv[1] = strdup(script_name.c_str());
         argv[2] = NULL;
 
         // std::cout << "cgi_exec=" << _cgi_executable << "\nscript_path=" << _script_path << std::endl;

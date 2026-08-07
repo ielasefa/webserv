@@ -11,10 +11,22 @@
 
 <div class="container">
 
+<h2>0 — Test python post</h2>
+  <div class="card">
+    <span class="tag">POST</span>
+    <form action="http://localhost:1027/cgi-bin/post.py" method="POST">
+      <label>Username</label>
+      <input type="text" name="username" placeholder="john">
+      <label>Password</label>
+      <input type="password" name="password" placeholder="••••••">
+      <button type="submit">Submit form</button>
+    </form>
+  </div>
+
   <h2>1 — Simple form (application/x-www-form-urlencoded)</h2>
   <div class="card">
     <span class="tag">POST</span>
-    <form action="http://localhost:3334/submit" method="POST">
+    <form action="http://localhost:1027/submit" method="POST">
       <label>Username</label>
       <input type="text" name="username" placeholder="john">
       <label>Password</label>
@@ -26,7 +38,7 @@
   <h2>2 — File upload (multipart/form-data)</h2>
   <div class="card">
     <span class="tag">POST</span>
-    <form action="http://localhost:3334/upload" method="POST" enctype="multipart/form-data">
+    <form action="http://localhost:1027/upload" method="POST" enctype="multipart/form-data">
       <label>Pick a file</label>
       <input type="file" name="file" style="margin-bottom:12px; display:block;">
       <button type="submit">Upload file</button>
@@ -36,7 +48,7 @@
   <h2>3 — Raw body (text/plain)</h2>
   <div class="card">
     <span class="tag">POST</span>
-    <form action="http://localhost:3334/raw" method="POST" enctype="text/plain">
+    <form action="http://localhost:1027/raw" method="POST" enctype="text/plain">
       <label>Raw text body</label>
       <textarea name="body" rows="3" placeholder="hello server"></textarea>
       <button type="submit">Send raw</button>
@@ -46,7 +58,7 @@
   <h2>4 — GET request</h2>
   <div class="card">
     <span class="tag" style="background:var(--bg-success);color:var(--text-success)">GET</span>
-    <form action="http://localhost:3334/" method="GET">
+    <form action="http://localhost:1027/" method="GET">
       <button type="submit">GET /</button>
     </form>
   </div>
@@ -65,7 +77,7 @@
 <script>
 function sendDelete() {
   const path = document.getElementById('del-path').value || '/files/test.txt';
-  fetch('http://localhost:3334' + path, { method: 'DELETE' })
+  fetch('http://localhost:1027' + path, { method: 'DELETE' })
     .then(r => document.getElementById('del-res').textContent = r.status + ' ' + r.statusText)
     .catch(e => document.getElementById('del-res').textContent = 'Error: ' + e.message);
 }
