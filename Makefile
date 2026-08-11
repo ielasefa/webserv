@@ -16,7 +16,8 @@ SRC = webserv.cpp \
       src/parsing/ServerConfig.cpp \
       src/parsing/LocationConfig.cpp \
       src/parsing/CGIHandler.cpp \
-      src/init/multiplexing.cpp
+      src/init/multiplexing.cpp \
+      src/init/server.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
@@ -37,15 +38,4 @@ fclean: clean
 
 re: fclean all
 
-test: test_config_parser test_integration
-
-test_config_parser: src/parsing/test_config_parser.cpp src/parsing/ConfigParser.cpp src/parsing/ServerConfig.cpp src/parsing/LocationConfig.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
-test_integration: src/parsing/test_integration.cpp src/parsing/ConfigParser.cpp src/parsing/ServerConfig.cpp src/parsing/LocationConfig.cpp src/parsing/CGIHandler.cpp src/parsing/webserv.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
-test_clean:
-	rm -f test_config_parser test_integration
-
-.PHONY: all clean fclean re test test_config_parser test_integration test_clean
+.PHONY: all clean fclean re

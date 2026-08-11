@@ -21,24 +21,28 @@ HttpRequest	parsing_header(std::string req_buffer)
 		req.host = line.substr(line.find(": ") + 2);
 
 	// std::cout << "[" << req.host << "]" << std::endl;
-	if (req.method == "POST")
+	std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
+	while (tmp.find("\r\n") != std::string::npos)
 	{
-		std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
-		std::string line;
-		while (tmp.find("\r\n\r\n") != std::string::npos)
+		line = tmp.substr(0, tmp.find("\r\n"));
+		if (line.empty())
+			break;
+		std::string key, value;
+		size_t pos = line.find(": ");
+		if (pos != std::string::npos)
 		{
-			line = tmp.substr(0, tmp.find("\r\n"));
-			req.headers[line.substr(0, line.find(": "))] = line.substr(line.find(": ") + 2);
-			tmp = tmp.substr(tmp.find("\r\n") + 2);
+			key = line.substr(0, pos);
+			value = line.substr(pos + 2);
 		}
-		// std::cout << tmp << std::endl;
-		if (tmp.find("\r\n") != std::string::npos)
-		{
-			// std::cout << "in" << std::endl;
-			req.body = tmp.substr(tmp.find("\r\n") + 2);
-		}
-		// std::cout << "["<< req.body << "]" << std::endl;
+		req.headers[key] = value;
+		tmp = tmp.substr(tmp.find("\r\n") + 2);
 	}
+	// if (req.method == "POST")
+	// {
+	// }
+	if (tmp.find("\r\n") != std::string::npos)
+		req.body = tmp.substr(tmp.find("\r\n") + 2);
+	// std::cout << "["<< req.body << "]" << std::endl;
 	return (req);
 }
 
@@ -72,6 +76,24 @@ ServerConfig& selecting_server(HttpRequest& req, std::vector<ServerConfig>& serv
 	return (servers[0]);
 }
 
+bool is_bodyComplete(t_client &c)
+{
+	size_t header_end = c.req_buffer.find("\r\n\r\n");
+	if (header_end == std::string::npos)
+		return false;
+
+	size_t body_start = header_end + 4;
+
+	if (c.is_chunked)
+		return c.req_buffer.find("0\r\n\r\n", body_start) != std::string::npos;
+
+	if (c.content_len == 0)
+		return true;
+
+	size_t body_received = c.req_buffer.size() - body_start;
+	return body_received >= c.content_len;
+}
+
 void	multiplexing(std::vector<int> &sockets,
 					std::map<int, std::vector<ServerConfig> >& socket_server)
 {
@@ -91,6 +113,7 @@ void	multiplexing(std::vector<int> &sockets,
 			if (socket_server.find(fd) != socket_server.end())
 			{
 				int cfd = accept(fd, NULL, NULL);//protection
+				fcntl(cfd, F_SETFL, O_NONBLOCK);
 				t_client cl;
 				cl.listen_socket = fd;
 				cl.fd = cfd;
@@ -139,109 +162,81 @@ void	multiplexing(std::vector<int> &sockets,
 					char buffer[1024] = "";
 					int len = recv(fd, buffer, sizeof(buffer), 0);
 					c.req_buffer += std::string(buffer, len);
+					std::cout << "/-------------------------------------\\\n"
+								<< c.req_buffer << "\n\\-------------------------------------/" << std::endl;
 					if (len <= 0)
 					{
 						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 						clients.erase(fd);
 						close(fd);
 					}
-					else if (c.req_buffer.find("\r\n\r\n") != std::string::npos)
+					else
 					{
-						HttpRequest req = parsing_header(c.req_buffer);
-						std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
-						ServerConfig& serv = selecting_server(req, servers);
-						LocationConfig loc = serv.matchLocation(req.path);
-
-						// for (std::map<std::string, std::string>::iterator it = loc.cgi_pass.begin(); it != loc.cgi_pass.end(); ++it)
-						// 	std::cout << it->first << " " << it->second << std::endl;
-
-						std::string ext = "";
-						size_t pos = req.path.find_last_of(".");
-						if (pos != std::string::npos)
-							ext = req.path.substr(pos);
-						// std::cout << ext << std::endl;
-						if (ext == ".py" || ext == ".php")
+						if (!c.is_header_parsed && c.req_buffer.find("\r\n\r\n") != std::string::npos)
 						{
-							// handling_cgi(req, "f", "f", c, epfd);
-							// std::cout << "1-req.path=" << req.path << std::endl;
-							std::string scriptPath = buildPath(req.path, loc);
-							// scriptPath = "/home/ayoub/Desktop/github/webserv/www/cgi-bin/script.py";
-							// std::cout << "2-scriptPath=" << scriptPath << std::endl;
-							// if (!isFile(scriptPath))
-							// 	return errorResponse(404, "", &serv);
-							CGIHandler cgi(req, scriptPath, loc.cgi_pass.at(ext));
-							cgi.startCGI(c.fd_in, c.fd_out, c.pid);
-							// std::cout << "clients[fd].fd=" << clients[fd].fd << std::endl;
-							// std::cout << "wsl hna mor startCGI" << std::endl;
-							c.is_cgi = 1;
-							add_epoll(epfd, c.fd_in, 1);
-							add_epoll(epfd, c.fd_out, 0);
-							
-							int c_original = fd;
-							int tmp_fd_in = c.fd_in;
-							int tmp_fd_out = c.fd_out;
-							clients[tmp_fd_in] = c;
-							clients[tmp_fd_out] = c;
-							clients[tmp_fd_in].fd = c_original;
-							clients[tmp_fd_out].fd = c_original;
+							c.req = parsing_header(c.req_buffer);
+							c.is_header_parsed = true;
 
-							// struct epoll_event ev;
-							// ev.events = EPOLLOUT;
-							// ev.data.fd = fd;
-							// epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
-							epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-							// std::cout << "clients[c.fd_out].fd=" << clients[c.fd_out].fd << std::endl;
+							if (c.req.headers.find("Content-Length") != c.req.headers.end())
+								c.content_len = std::atoi(c.req.headers["Content-Length"].c_str());
+							if (c.req.headers.find("Transfer-Encoding") != c.req.headers.end() && c.req.headers["Transfer-Encoding"] == "chunked")
+								c.is_chunked = true;
 						}
-						else
+						// HttpRequest req = parsing_header(c.req_buffer);
+						if (c.is_header_parsed && is_bodyComplete(c))
 						{
-							c.res_buffer = dispatchRequest(req , serv);
-							write(fd, c.res_buffer.c_str(), c.res_buffer.size());
-							epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-							clients.erase(fd);
-							close(fd);
+							std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
+							ServerConfig& serv = selecting_server(c.req, servers);
+							LocationConfig loc = serv.matchLocation(c.req.path);
+
+							std::string ext = "";
+							size_t pos = c.req.path.find_last_of(".");
+							if (pos != std::string::npos)
+								ext = c.req.path.substr(pos);
+							if (ext == ".py" || ext == ".php")
+							{
+								// handling_cgi(req, "f", "f", c, epfd);
+								// std::cout << "1-req.path=" << req.path << std::endl;
+								std::string scriptPath = buildPath(c.req.path, loc);
+								// scriptPath = "/home/ayoub/Desktop/github/webserv/www/cgi-bin/script.py";
+								// std::cout << "2-scriptPath=" << scriptPath << std::endl;
+								// if (!isFile(scriptPath))
+								// 	return errorResponse(404, "", &serv);
+								CGIHandler cgi(c.req, scriptPath, loc.cgi_pass.at(ext));
+								cgi.startCGI(c.fd_in, c.fd_out, c.pid);
+								// std::cout << "clients[fd].fd=" << clients[fd].fd << std::endl;
+								// std::cout << "wsl hna mor startCGI" << std::endl;
+								c.is_cgi = 1;
+								add_epoll(epfd, c.fd_in, 1);
+								add_epoll(epfd, c.fd_out, 0);
+								
+								int c_original = fd;
+								int tmp_fd_in = c.fd_in;
+								int tmp_fd_out = c.fd_out;
+								clients[tmp_fd_in] = c;
+								clients[tmp_fd_out] = c;
+								clients[tmp_fd_in].fd = c_original;
+								clients[tmp_fd_out].fd = c_original;
 	
+								// struct epoll_event ev;
+								// ev.events = EPOLLOUT;
+								// ev.data.fd = fd;
+								// epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
+								epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+								// std::cout << "clients[c.fd_out].fd=" << clients[c.fd_out].fd << std::endl;
+							}
+							else
+							{
+								c.res_buffer = dispatchRequest(c.req , serv);
+								write(fd, c.res_buffer.c_str(), c.res_buffer.size());
+								epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+								clients.erase(fd);
+								close(fd);
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-}
-
-std::vector<int> init_socket(const std::vector<ServerConfig>& servers,
-							std::map<int, std::vector<ServerConfig> >& socket_server)
-{
-	std::vector<int> sockets;
-
-	std::map<int, int> port_socket;
-
-	for (size_t i = 0; i < servers.size(); i++)
-	{
-		int sfd;
-
-		if (port_socket.find(servers[i].port) != port_socket.end())
-			sfd = port_socket[servers[i].port];
-		else
-		{
-			sfd = socket(AF_INET, SOCK_STREAM, 0);
-
-			int opt = 1;
-			setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-			sockaddr_in addr;
-			addr.sin_family = AF_INET;
-			addr.sin_port = htons(servers[i].port);
-			addr.sin_addr.s_addr = INADDR_ANY;
-
-			if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-				std::cout << "--shit--" << std::endl;
-
-			listen(sfd, 128);
-
-			sockets.push_back(sfd);
-			port_socket[servers[i].port] = sfd;
-		}
-		socket_server[sfd].push_back(servers[i]);
-	}
-	return sockets;
 }

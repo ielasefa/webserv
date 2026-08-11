@@ -37,6 +37,19 @@ struct t_header
     std::string other;
 };
 
+struct HttpRequest
+{
+    std::string method;
+    std::string path;
+    std::string host;
+    std::map<std::string, std::string> headers;
+
+    std::string query_string;
+    std::string version;
+
+    std::string body;
+};
+
 struct t_client
 {
     int listen_socket;
@@ -50,17 +63,11 @@ struct t_client
     std::string cgi_output;
     pid_t pid;
     bool is_cgi;
-};
 
-struct HttpRequest
-{
-    std::string method;
-    std::string path;
-    std::string query_string;
-    std::string version;
-    std::string host;
-    std::map<std::string, std::string> headers;
-    std::string body;
+    HttpRequest req;
+    bool is_header_parsed;
+    size_t content_len;
+    bool is_chunked;
 };
 
 struct HttpResponse

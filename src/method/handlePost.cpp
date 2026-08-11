@@ -60,14 +60,22 @@ std::string handlePOST(const HttpRequest& req,
         req.headers.find("Content-Length");
 
 
-    if (it == req.headers.end())
-        return errorResponse(411, "", &serv);
+    // if (it == req.headers.end())
+    //     return errorResponse(411, "", &serv);
+
+    bool has_content_length = req.headers.count("Content-Length") > 0;//
+    bool has_chunked = req.headers.count("Transfer-Encoding") > 0 &&
+                    req.headers.at("Transfer-Encoding").find("chunked") != std::string::npos;//
+
+    if (!has_content_length && !has_chunked)
+        return errorResponse(411, "", &serv);//
 
     size_t contentLength = std::strtoul(it->second.c_str(), NULL, 10);
 
     if (serv.client_max_body_size > 0 &&
         contentLength > serv.client_max_body_size)
         return errorResponse(413, "", &serv);
+    // std::cout << "===" << req.body.size() << "===" << std::endl;
     if (req.body.size() != contentLength)
         return errorResponse(400, "", &serv);
     std::string baseDir;
