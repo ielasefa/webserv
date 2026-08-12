@@ -38,6 +38,11 @@ int main(int argc, char *argv[])
 		// std::cout << "Server started with " << servers.size() << " server(s)" << std::endl;
 		std::map<int, std::vector<ServerConfig> > socket_server;
 		std::vector<int> sockets = init_socket(servers, socket_server);
+		if (!sockets.size())
+		{
+			std::cerr << "Error: Failed to create socket(s)" << std::endl;
+			return 1;
+		}
 		multiplexing(sockets, socket_server);
 		// std::cout << "samaykom" << std::endl;
 	}

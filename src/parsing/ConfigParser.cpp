@@ -174,10 +174,13 @@ bool ConfigParser::parse()
             if (!parseServer(server))
                 return false;
 
-            if (server.port <= 0 || server.port > 65535)
+            for (size_t i; i < server.ports.size(); i++)
             {
-                error("Invalid or missing port in server block");
-                return false;
+                if (server.ports[i] <= 0 || server.ports[i] > 65535)
+                {
+                    error("Invalid or missing port in server block");
+                    return false;
+                }
             }
 
             _servers.push_back(server);
@@ -215,16 +218,27 @@ bool ConfigParser::parseServer(ServerConfig &server)
 
             std::string value = consume();
             size_t colon = value.find(':');
+            // if (colon != std::string::npos)
+            // {
+            //     server.host = value.substr(0, colon);
+            //     server.port = std::atoi(value.substr(colon + 1).c_str());
+            // }
+            // else
+            // {
+            //     server.port = std::atoi(value.c_str());
+            // }
+            int port;
             if (colon != std::string::npos)
             {
                 server.host = value.substr(0, colon);
-                server.port = std::atoi(value.substr(colon + 1).c_str());
+                port = std::atoi(value.substr(colon + 1).c_str());
             }
             else
             {
-                server.port = std::atoi(value.c_str());
+                port = std::atoi(value.c_str());
             }
-
+            
+            server.ports.push_back(port);
             if (!expect(";")) return false;
         }
         else if (token == "server_name")

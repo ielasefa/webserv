@@ -2,25 +2,20 @@
 
 HttpRequest	parsing_header(std::string req_buffer)
 {
-	// t_header header;
 	HttpRequest req;
 
 	std::string line = req_buffer.substr(0, req_buffer.find("\r"));
 	req.method = line.substr(0, line.find(" "));
 	std::string other = line.substr(line.find(" ") + 1);
-	req.path = other.substr(0, other.find(" "));
-
-	line = req_buffer.substr(line.size() + 2);
-	line = line.substr(0, line.find("\r\n"));
-	if (line.find(":") != std::string::npos)
+	if (other.find("?") != std::string::npos)
 	{
-		req.host = line.substr(line.find(": ") + 2);
-		req.host = req.host.substr(0, req.host.find(":"));
+		req.path = other.substr(0, other.find("?"));
+		req.query_string = other.substr(other.find("?") + 1, other.find(" ") - other.find("?") - 1);
 	}
 	else
-		req.host = line.substr(line.find(": ") + 2);
+		req.path = other.substr(0, other.find(" "));
+	req.version = other.substr(other.find(" ") + 1);
 
-	// std::cout << "[" << req.host << "]" << std::endl;
 	std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
 	while (tmp.find("\r\n") != std::string::npos)
 	{
@@ -37,12 +32,16 @@ HttpRequest	parsing_header(std::string req_buffer)
 		req.headers[key] = value;
 		tmp = tmp.substr(tmp.find("\r\n") + 2);
 	}
-	// if (req.method == "POST")
-	// {
-	// }
-	if (tmp.find("\r\n") != std::string::npos)
-		req.body = tmp.substr(tmp.find("\r\n") + 2);
-	// std::cout << "["<< req.body << "]" << std::endl;
+
+	if (req.headers.find("Host") != req.headers.end())
+	{
+		tmp = req.headers["Host"];
+		if (tmp.find(":") != std::string::npos)
+			req.host = req.host.substr(0, req.host.find(":"));
+		else
+			req.host = tmp;
+	}
+
 	return (req);
 }
 
@@ -112,8 +111,18 @@ void	multiplexing(std::vector<int> &sockets,
 
 			if (socket_server.find(fd) != socket_server.end())
 			{
-				int cfd = accept(fd, NULL, NULL);//protection
-				fcntl(cfd, F_SETFL, O_NONBLOCK);
+				int cfd = accept(fd, NULL, NULL);
+				if (cfd < 0)
+				{
+					std::cerr << "Error: Failed to accept new client" << std::endl;
+					continue;
+				}
+				if (fcntl(cfd, F_SETFL, O_NONBLOCK) < 0)
+				{
+					std::cerr << "Error: Failure in fcntl()" << std::endl;
+					close(cfd);
+					continue;
+				}
 				t_client cl;
 				cl.listen_socket = fd;
 				cl.fd = cfd;
@@ -161,9 +170,7 @@ void	multiplexing(std::vector<int> &sockets,
 				{
 					char buffer[1024] = "";
 					int len = recv(fd, buffer, sizeof(buffer), 0);
-					c.req_buffer += std::string(buffer, len);
-					std::cout << "/-------------------------------------\\\n"
-								<< c.req_buffer << "\n\\-------------------------------------/" << std::endl;
+
 					if (len <= 0)
 					{
 						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
@@ -172,6 +179,10 @@ void	multiplexing(std::vector<int> &sockets,
 					}
 					else
 					{
+						c.req_buffer += std::string(buffer, len);
+						std::cout << "/-------------------------------------\\\n"
+									<< c.req_buffer << "\n\\-------------------------------------/" << std::endl;
+
 						if (!c.is_header_parsed && c.req_buffer.find("\r\n\r\n") != std::string::npos)
 						{
 							c.req = parsing_header(c.req_buffer);
@@ -185,6 +196,10 @@ void	multiplexing(std::vector<int> &sockets,
 						// HttpRequest req = parsing_header(c.req_buffer);
 						if (c.is_header_parsed && is_bodyComplete(c))
 						{
+							size_t body_pos = c.req_buffer.find("\r\n\r\n") + 4;
+							if (body_pos != std::string::npos)
+								c.req.body = c.req_buffer.substr(body_pos);
+
 							std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
 							ServerConfig& serv = selecting_server(c.req, servers);
 							LocationConfig loc = serv.matchLocation(c.req.path);
@@ -193,7 +208,8 @@ void	multiplexing(std::vector<int> &sockets,
 							size_t pos = c.req.path.find_last_of(".");
 							if (pos != std::string::npos)
 								ext = c.req.path.substr(pos);
-							if (ext == ".py" || ext == ".php")
+							std::map<std::string, std::string>::iterator it = loc.cgi_pass.find(ext);
+							if (it != loc.cgi_pass.end())
 							{
 								// handling_cgi(req, "f", "f", c, epfd);
 								// std::cout << "1-req.path=" << req.path << std::endl;

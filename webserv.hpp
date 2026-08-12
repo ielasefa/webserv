@@ -31,12 +31,6 @@ extern const int    CGI_TIMEOUT_S;
 extern const char  *DEFAULT_CONFIG_PATH;
 extern const int    READ_BUFFER_SIZE;
 
-struct t_header
-{
-    std::string first_line;
-    std::string other;
-};
-
 struct HttpRequest
 {
     std::string method;
@@ -150,7 +144,8 @@ class ServerConfig
 public:
     std::string host;
 
-    int port;
+    // int port; we need list of ports not just one
+    std::vector<int> ports;
 
     std::string server_name;
 
