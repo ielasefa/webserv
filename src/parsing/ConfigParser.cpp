@@ -358,6 +358,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'root'"); return false; }
             location.root = consume();
+            location.has_explicit_root = true;
             if (!expect(";")) return false;
         }
         else if (token == "index")
@@ -485,7 +486,8 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         else if (token == "client_max_body_size")
         {
             if (isEnd()) { error("Missing value after 'client_max_body_size'"); return false; }
-            consume();
+            location.client_max_body_size = parseSize(consume());
+            location.has_client_max_body_size = true;
             if (!expect(";")) return false;
         }
         else if (token == "internal")

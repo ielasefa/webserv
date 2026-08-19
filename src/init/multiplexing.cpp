@@ -180,9 +180,6 @@ void	multiplexing(std::vector<int> &sockets,
 					else
 					{
 						c.req_buffer += std::string(buffer, len);
-						std::cout << "/-------------------------------------\\\n"
-									<< c.req_buffer << "\n\\-------------------------------------/" << std::endl;
-
 						if (!c.is_header_parsed && c.req_buffer.find("\r\n\r\n") != std::string::npos)
 						{
 							c.req = parsing_header(c.req_buffer);

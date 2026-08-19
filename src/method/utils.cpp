@@ -75,6 +75,9 @@ std::string readBody(int fd, size_t contentLength)
 
 bool isMethodAllowed(const LocationConfig& loc, const std::string& method)
 {
+    if (loc.allowed_methods.empty())
+        return true;
+
     for (size_t i = 0; i < loc.allowed_methods.size(); i++)
     {
         if (loc.allowed_methods[i] == method)

@@ -3,55 +3,108 @@
 /*                                                        :::      ::::::::   */
 /*   routing.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jaloulid <jaloulid@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: iel-asef <iel-asef@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/14 19:14:11 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/26 00:48:48 by jaloulid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../webserv.hpp"
 
-// Forward declaration for function overloading
+
 std::string buildPath(const std::string& requestPath,
                       const LocationConfig& loc,
                       bool appendIndex);
+
+
+static std::string stripQueryString(const std::string& path)
+{
+    size_t pos = path.find('?');
+
+    if (pos == std::string::npos)
+        return path;
+
+    return path.substr(0, pos);
+}
+
+static std::string canonicalLocationPath(const std::string& locationPath)
+{
+    if (locationPath.size() > 1 &&
+        locationPath[locationPath.size() - 1] == '/')
+    {
+        return locationPath.substr(0, locationPath.size() - 1);
+    }
+
+    return locationPath;
+}
+
+static bool locationMatches(const std::string& requestPath,
+                            const std::string& locationPath)
+{
+    std::string normalizedLocationPath = canonicalLocationPath(locationPath);
+
+    if (normalizedLocationPath.empty())
+        return false;
+
+    if (normalizedLocationPath == "/")
+        return true;
+
+    if (requestPath == normalizedLocationPath)
+        return true;
+
+    if (requestPath.size() <= normalizedLocationPath.size())
+        return false;
+
+    if (requestPath.compare(0,
+                            normalizedLocationPath.size(),
+                            normalizedLocationPath) != 0)
+        return false;
+
+    return requestPath[normalizedLocationPath.size()] == '/';
+}
 
 LocationConfig ServerConfig::matchLocation(const std::string& path) const
 {
     if (locations.empty())
         return LocationConfig();
 
+    std::string requestPath = stripQueryString(path);
+
     LocationConfig best;
     bool found = false;
 
-    for (size_t i = 0; i < locations.size(); i++)
+    for (size_t i = 0; i < locations.size(); ++i)
     {
         const LocationConfig& loc = locations[i];
 
-        bool match =
-            (path == loc.path) ||
-            (loc.path != "/" &&
-             path.compare(0, loc.path.length(), loc.path) == 0 &&
-             (path.size() == loc.path.length() ||
-              path[loc.path.length()] == '/'));
+        if (!locationMatches(requestPath, loc.path))
+            continue;
 
-        if (match && (!found || loc.path.length() > best.path.length()))
+        if (!found || loc.path.size() > best.path.size())
         {
             best = loc;
             found = true;
         }
     }
 
-    if (found)
-        return best;
+    if (!found)
+        return LocationConfig();
 
-    for (size_t i = 0; i < locations.size(); i++)
-        if (locations[i].path == "/")
-            return locations[i];
+    if (best.path != "/" && best.cgi_pass.empty())
+    {
+        for (size_t i = 0; i < locations.size(); ++i)
+        {
+            if (locations[i].path == "/")
+            {
+                best.cgi_pass = locations[i].cgi_pass;
+                break;
+            }
+        }
+    }
 
-    return LocationConfig();
+    return best;
 }
+
 
 std::string redirectResponse(int code, const std::string& url)
 {
@@ -62,10 +115,13 @@ std::string redirectResponse(int code, const std::string& url)
     return buildResponse(code, "", "text/plain", headers);
 }
 
+
 std::string normalizePath(const std::string& path)
 {
+    std::string cleanPath = stripQueryString(path);
+
     std::vector<std::string> parts;
-    std::stringstream ss(path);
+    std::stringstream ss(cleanPath);
     std::string part;
 
     while (std::getline(ss, part, '/'))
@@ -77,67 +133,132 @@ std::string normalizePath(const std::string& path)
         {
             if (!parts.empty())
                 parts.pop_back();
+
             continue;
         }
 
         parts.push_back(part);
     }
+
     std::string result = "/";
-    for (size_t i = 0; i < parts.size(); i++)
+
+    for (size_t i = 0; i < parts.size(); ++i)
     {
         result += parts[i];
+
         if (i + 1 < parts.size())
             result += "/";
+    }
+   
+    if (cleanPath.size() > 1 &&
+        cleanPath[cleanPath.size() - 1] == '/' &&
+        result[result.size() - 1] != '/')
+    {
+        result += "/";
     }
 
     return result;
 }
+
 std::string buildPath(const std::string& requestPath,
                       const LocationConfig& loc)
 {
     return buildPath(requestPath, loc, false);
 }
 
+
 std::string buildPath(const std::string& requestPath,
                       const LocationConfig& loc,
                       bool appendIndex)
 {
-    std::string path = loc.root;
+    std::string root = loc.root;
+    std::string rel = stripQueryString(requestPath);
+    std::string locationPath = canonicalLocationPath(loc.path);
+    std::string strippedRel = rel;
+    std::string unstrippedRel = rel;
 
-    if (!path.empty() && path[path.size() - 1] != '/')
-        path += '/';
-
-    std::string rel = requestPath;
-
-    size_t q = rel.find('?');
-    if (q != std::string::npos)
-        rel = rel.substr(0, q);
-
-    if (loc.path != "/" &&
-        rel.compare(0, loc.path.length(), loc.path) == 0 &&
-        (rel.size() == loc.path.size() || rel[loc.path.size()] == '/'))
+   
+    if (loc.has_explicit_root &&
+        locationPath != "/" &&
+        locationMatches(rel, loc.path))
     {
-        rel = rel.substr(loc.path.length());
+        strippedRel = rel.substr(locationPath.size());
     }
 
-    while (rel.size() > 1 && rel[0] == '/')
-        rel.erase(0, 1);
+    
+    while (!strippedRel.empty() && strippedRel[0] == '/')
+        strippedRel.erase(0, 1);
 
-    if (rel.empty())
-        rel = "/";
+    while (!unstrippedRel.empty() && unstrippedRel[0] == '/')
+        unstrippedRel.erase(0, 1);
 
-    path += rel;
+    
+    while (root.size() > 1 &&
+           root[root.size() - 1] == '/')
+    {
+        root.erase(root.size() - 1);
+    }
 
+    std::string strippedPath = root;
+
+    if (!strippedRel.empty())
+    {
+        if (!strippedPath.empty())
+            strippedPath += "/";
+
+        strippedPath += strippedRel;
+    }
+
+    if (strippedRel.empty() &&
+        !strippedPath.empty() &&
+        strippedPath[strippedPath.size() - 1] != '/')
+    {
+        strippedPath += "/";
+    }
+
+    std::string finalPath = strippedPath;
+
+    if (loc.has_explicit_root &&
+        locationPath != "/" &&
+        locationMatches(rel, loc.path))
+    {
+        std::string rawPath = root;
+
+        if (!unstrippedRel.empty())
+        {
+            if (!rawPath.empty())
+                rawPath += "/";
+
+            rawPath += unstrippedRel;
+        }
+
+        if (unstrippedRel.empty() &&
+            !rawPath.empty() &&
+            rawPath[rawPath.size() - 1] != '/')
+        {
+            rawPath += "/";
+        }
+
+        if (fileExists(rawPath) || isDirectory(rawPath))
+            finalPath = rawPath;
+        else if (fileExists(strippedPath) || isDirectory(strippedPath))
+            finalPath = strippedPath;
+    }
+
+ 
     if (appendIndex)
     {
-        if (path[path.size() - 1] != '/')
-            path += '/';
+        if (!finalPath.empty() &&
+            finalPath[finalPath.size() - 1] != '/')
+        {
+            finalPath += "/";
+        }
 
         if (!loc.index.empty())
-            path += loc.index;
+            finalPath += loc.index;
         else
-            path += "index.html";
+            finalPath += "index.html";
     }
 
-    return path;
+    return finalPath;
 }

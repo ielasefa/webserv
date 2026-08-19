@@ -37,7 +37,13 @@ std::string serveFile(const std::string& path,
     if (isSymlink(path))
         return errorResponse(403, "", config);
 
+    if (access(path.c_str(), R_OK) != 0)
+        return errorResponse(403, "", config);
+
     std::string content = readFile(path);
+
+    if (content.empty() && fileExists(path))
+        return errorResponse(403, "", config);
 
     return buildResponse(200, content, getMimeType(path));
 }
@@ -83,16 +89,28 @@ std::string handleRequest(const HttpRequest& req,
     else
     {
         fullPath = buildPath(cleanPath, loc);
-        // std::cout << "fullPath" << fullPath << std::endl;
     }
 
-    if (isSymlink(fullPath))
+    struct stat pathStat;
+
+    if (lstat(fullPath.c_str(), &pathStat) == 0 && S_ISLNK(pathStat.st_mode))
         return errorResponse(403, "", config);
-    if (isFile(fullPath))
+
+    if (stat(fullPath.c_str(), &pathStat) != 0)
+    {
+        if (errno == EACCES || errno == EPERM)
+            return errorResponse(403, "", config);
+        return errorResponse(404, "", config);
+    }
+
+    if (S_ISREG(pathStat.st_mode))
         return serveFile(fullPath, config);
 
-    if (isDirectory(fullPath))
+    if (S_ISDIR(pathStat.st_mode))
     {
+        if (access(fullPath.c_str(), X_OK) != 0)
+            return errorResponse(403, "", config);
+
         if (!hasSlash && cleanPath != "/")
             return redirect301(cleanPath + "/");
 

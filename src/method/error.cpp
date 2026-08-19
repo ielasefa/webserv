@@ -35,6 +35,7 @@ std::string statusMessage(int code)
         case 409: return "Conflict";
         case 411: return "Length Required";
         case 413: return "Payload Too Large";
+        case 414: return "URI Too Long";
 
         case 500: return "Internal Server Error";
         case 501: return "Not Implemented";

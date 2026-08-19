@@ -94,6 +94,9 @@ public:
 
     std::string upload_store;
 
+    size_t      client_max_body_size;
+    bool        has_client_max_body_size;
+
     int         redirect_code;
     std::string redirect;
 
