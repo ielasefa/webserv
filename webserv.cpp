@@ -8,6 +8,8 @@ const int   READ_BUFFER_SIZE    = 4096;
 
 int main(int argc, char *argv[])
 {
+	signal(SIGPIPE, SIG_IGN);
+
 	std::string config_path = DEFAULT_CONFIG_PATH;
 	
 	if (argc > 2)

@@ -55,6 +55,14 @@ struct t_client
     int fd_in;
     int fd_out;
     std::string cgi_output;
+    size_t cgi_input_sent;
+    int cgi_body_fd;
+    size_t cgi_body_size;
+    bool cgi_headers_parsed;
+    bool cgi_finished;
+    std::string cgi_header_block;
+    size_t response_sent;
+    size_t cgi_output_sent;
     pid_t pid;
     bool is_cgi;
 
@@ -62,6 +70,15 @@ struct t_client
     bool is_header_parsed;
     size_t content_len;
     bool is_chunked;
+
+    t_client()
+        : listen_socket(-1), fd(-1), fd_in(-1), fd_out(-1),
+          cgi_input_sent(0), cgi_body_fd(-1), cgi_body_size(0),
+          cgi_headers_parsed(false), cgi_finished(false),
+          response_sent(0), cgi_output_sent(0), pid(-1), is_cgi(false),
+          is_header_parsed(false), content_len(0), is_chunked(false)
+    {
+    }
 };
 
 struct HttpResponse
@@ -113,6 +130,7 @@ public:
     bool autoindex;
 
     bool has_explicit_root;
+    bool has_explicit_index;
 
     std::string upload_store;
 
@@ -212,6 +230,10 @@ public:
     std::string execute();
     std::string getBody() const;
     bool        startCGI(int &fd_in, int &fd_out, pid_t &pid);
+    void        releaseBody(std::string &body);
+    static std::string buildResponseHeader(
+        const std::string &cgi_headers,
+        size_t body_size);
     static std::string wrapResponse(const std::string &cgi_output);//to static
 
 private:

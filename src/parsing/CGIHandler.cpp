@@ -58,6 +58,9 @@ char **CGIHandler::buildEnv() const
     vars.push_back("SCRIPT_NAME=" + _request.path);
 
     vars.push_back("PATH_INFO=" + _request.path);
+    vars.push_back("REQUEST_URI=" + _request.path +
+                   (_request.query_string.empty() ? "" :
+                    "?" + _request.query_string));
 
     vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
     vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
@@ -83,17 +86,25 @@ char **CGIHandler::buildEnv() const
         vars.push_back("CONTENT_LENGTH=0");
     }
 
-    if (_request.headers.count("Cookie"))
-        vars.push_back("HTTP_COOKIE=" + _request.headers.at("Cookie"));
+    for (std::map<std::string, std::string>::const_iterator it =
+             _request.headers.begin();
+         it != _request.headers.end(); ++it)
+    {
+        std::string name = it->first;
+        std::transform(name.begin(), name.end(), name.begin(), ::toupper);
 
-    if (_request.headers.count("Accept"))
-        vars.push_back("HTTP_ACCEPT=" + _request.headers.at("Accept"));
+        for (size_t i = 0; i < name.size(); ++i)
+        {
+            if (name[i] == '-')
+                name[i] = '_';
+        }
 
-    if (_request.headers.count("User-Agent"))
-        vars.push_back("HTTP_USER_AGENT=" + _request.headers.at("User-Agent"));
+        if (name == "CONTENT_TYPE" || name == "CONTENT_LENGTH" ||
+            name == "TRANSFER_ENCODING")
+            continue;
 
-    if (_request.headers.count("Host"))
-        vars.push_back("HTTP_HOST=" + _request.headers.at("Host"));
+        vars.push_back("HTTP_" + name + "=" + it->second);
+    }
 
     char **env = new char*[vars.size() + 1];
 
@@ -117,26 +128,71 @@ void CGIHandler::freeEnv(char **env) const
     delete[] env;
 }
 
+std::string CGIHandler::buildResponseHeader(
+    const std::string &cgi_headers,
+    size_t body_size)
+{
+    std::string status = "200 OK";
+    std::vector<std::string> headers;
+    std::istringstream lines(cgi_headers);
+    std::string line;
+    bool has_content_type = false;
+
+    while (std::getline(lines, line))
+    {
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line.erase(line.size() - 1);
+
+        std::string lower = line;
+        std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+        if (lower.compare(0, 7, "status:") == 0)
+        {
+            status = line.substr(7);
+            while (!status.empty() && status[0] == ' ')
+                status.erase(0, 1);
+        }
+        else if (lower.compare(0, 15, "content-length:") != 0 &&
+                 lower.compare(0, 11, "connection:") != 0 &&
+                 !line.empty())
+        {
+            headers.push_back(line);
+            if (lower.compare(0, 13, "content-type:") == 0)
+                has_content_type = true;
+        }
+    }
+
+    std::ostringstream response;
+    response << "HTTP/1.1 " << status << "\r\n";
+
+    for (size_t i = 0; i < headers.size(); ++i)
+        response << headers[i] << "\r\n";
+
+    if (!has_content_type)
+        response << "Content-Type: text/html\r\n";
+
+    response << "Content-Length: " << body_size << "\r\n";
+    response << "Connection: close\r\n\r\n";
+    return response.str();
+}
+
 std::string CGIHandler::wrapResponse(const std::string &cgi_output)
 {
-    bool has_headers = (cgi_output.find("\r\n\r\n") != std::string::npos ||
-                        cgi_output.find("\n\n")     != std::string::npos);
+    size_t header_end = cgi_output.find("\r\n\r\n");
+    size_t separator_size = 4;
 
-    if (has_headers)
+    if (header_end == std::string::npos)
     {
-        return "HTTP/1.1 200 OK\r\n" + cgi_output;
+        header_end = cgi_output.find("\n\n");
+        separator_size = 2;
     }
-    else
-    {
-        std::ostringstream response;
-        response << "HTTP/1.1 200 OK\r\n";
-        response << "Content-Type: text/html\r\n";
-        response << "Content-Length: " << cgi_output.size() << "\r\n";
-        response << "Connection: close\r\n";
-        response << "\r\n";
-        response << cgi_output;
-        return response.str();
-    }
+
+    if (header_end == std::string::npos)
+        return buildResponse(200, cgi_output, "text/html");
+
+    std::string body = cgi_output.substr(header_end + separator_size);
+    return buildResponseHeader(cgi_output.substr(0, header_end),
+                               body.size()) + body;
 }
 
 std::string CGIHandler::getBody() const
@@ -144,17 +200,16 @@ std::string CGIHandler::getBody() const
     return _request.body;
 }
 
+void CGIHandler::releaseBody(std::string &body)
+{
+    std::string old_body;
+
+    body.swap(old_body);
+    body.swap(_request.body);
+}
+
 bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 {
-    struct stat script_stat;
-    // _script_path = "www/cgi-bin/script.py";
-    if (stat(_script_path.c_str(), &script_stat) != 0)
-    {
-        // std::cout << _script_path << std::endl;
-        std::cerr << "[CGI] Script not found: " << _script_path << std::endl;
-        return false;
-    }
-
     // Process chunked body before handing it over
     if (_request.headers.count("Transfer-Encoding"))
     {
@@ -175,6 +230,39 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
     // Set pipes to non-blocking
     fcntl(pipe_in[1], F_SETFL, O_NONBLOCK);
     fcntl(pipe_out[0], F_SETFL, O_NONBLOCK);
+
+    std::string executable = _cgi_executable;
+    char resolved_path[PATH_MAX];
+
+    if (realpath(_cgi_executable.c_str(), resolved_path))
+        executable = resolved_path;
+    else if (_cgi_executable.find('/') == std::string::npos)
+    {
+        const char *path_env = std::getenv("PATH");
+        std::string paths = path_env ? path_env : "";
+        size_t start = 0;
+
+        while (start <= paths.size())
+        {
+            size_t end = paths.find(':', start);
+            std::string dir = paths.substr(start, end - start);
+            std::string candidate = (dir.empty() ? "." : dir) +
+                                    "/" + _cgi_executable;
+
+            if (access(candidate.c_str(), X_OK) == 0)
+            {
+                if (realpath(candidate.c_str(), resolved_path))
+                    executable = resolved_path;
+                else
+                    executable = candidate;
+                break;
+            }
+
+            if (end == std::string::npos)
+                break;
+            start = end + 1;
+        }
+    }
 
     char **env = buildEnv();
     pid = fork();
@@ -205,12 +293,12 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 
         std::string script_name = _script_path.substr(_script_path.rfind("/") + 1);
         char *argv[3];
-        argv[0] = strdup(_cgi_executable.c_str());
+        argv[0] = strdup(executable.c_str());
         argv[1] = strdup(script_name.c_str());
         argv[2] = NULL;
 
         // std::cout << "cgi_exec=" << _cgi_executable << "\nscript_path=" << _script_path << std::endl;
-        execve(_cgi_executable.c_str(), argv, env);
+        execve(executable.c_str(), argv, env);
         // perror("execve");
         //if the excuve fails
         free(argv[0]);

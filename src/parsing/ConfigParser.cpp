@@ -365,6 +365,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'index'"); return false; }
             location.index = consume();
+            location.has_explicit_index = true;
             if (!expect(";")) return false;
         }
         else if (token == "autoindex")

@@ -41,26 +41,27 @@ static std::string canonicalLocationPath(const std::string& locationPath)
 static bool locationMatches(const std::string& requestPath,
                             const std::string& locationPath)
 {
-    std::string normalizedLocationPath = canonicalLocationPath(locationPath);
-
-    if (normalizedLocationPath.empty())
+    if (locationPath.empty())
         return false;
 
-    if (normalizedLocationPath == "/")
+    if (locationPath == "/")
         return true;
 
-    if (requestPath == normalizedLocationPath)
+    if (requestPath == locationPath)
         return true;
 
-    if (requestPath.size() <= normalizedLocationPath.size())
+    if (requestPath.size() <= locationPath.size())
         return false;
 
     if (requestPath.compare(0,
-                            normalizedLocationPath.size(),
-                            normalizedLocationPath) != 0)
+                            locationPath.size(),
+                            locationPath) != 0)
         return false;
 
-    return requestPath[normalizedLocationPath.size()] == '/';
+    if (locationPath[locationPath.size() - 1] == '/')
+        return true;
+
+    return requestPath[locationPath.size()] == '/';
 }
 
 LocationConfig ServerConfig::matchLocation(const std::string& path) const

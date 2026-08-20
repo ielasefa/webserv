@@ -42,9 +42,6 @@ std::string serveFile(const std::string& path,
 
     std::string content = readFile(path);
 
-    if (content.empty() && fileExists(path))
-        return errorResponse(403, "", config);
-
     return buildResponse(200, content, getMimeType(path));
 }
 
@@ -132,7 +129,12 @@ std::string handleRequest(const HttpRequest& req,
             return serveFile(indexPath, config);
 
         if (!loc.autoindex)
+        {
+            if (loc.has_explicit_index)
+                return errorResponse(404, "", config);
+
             return errorResponse(403, "", config);
+        }
 
         std::vector<std::string> files = readDirectory(fullPath);
 

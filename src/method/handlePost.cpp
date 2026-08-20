@@ -97,9 +97,16 @@ static bool parseHexSize(const std::string &str, size_t &value)
     return true;
 }
 
-static bool decodeChunkedBody(const std::string &raw,
-                              std::string &decoded,
-                              size_t maxBodySize)
+enum ChunkDecodeResult
+{
+    CHUNK_DECODE_OK,
+    CHUNK_DECODE_MALFORMED,
+    CHUNK_DECODE_TOO_LARGE
+};
+
+static ChunkDecodeResult decodeChunkedBody(const std::string &raw,
+                                           std::string &decoded,
+                                           size_t maxBodySize)
 {
     decoded.clear();
 
@@ -110,7 +117,7 @@ static bool decodeChunkedBody(const std::string &raw,
         size_t lineEnd = raw.find("\r\n", pos);
 
         if (lineEnd == std::string::npos)
-            return false;
+            return CHUNK_DECODE_MALFORMED;
 
         std::string sizeLine = raw.substr(pos, lineEnd - pos);
 
@@ -120,12 +127,12 @@ static bool decodeChunkedBody(const std::string &raw,
             sizeLine = sizeLine.substr(0, semicolon);
 
         if (sizeLine.empty())
-            return false;
+            return CHUNK_DECODE_MALFORMED;
 
         size_t chunkSize = 0;
 
         if (!parseHexSize(sizeLine, chunkSize))
-            return false;
+            return CHUNK_DECODE_MALFORMED;
 
         pos = lineEnd + 2;
 
@@ -133,30 +140,30 @@ static bool decodeChunkedBody(const std::string &raw,
         {
             
             if (pos == raw.size())
-                return true;
+                return CHUNK_DECODE_OK;
 
             size_t trailerEnd = raw.find("\r\n\r\n", pos);
 
             if (trailerEnd != std::string::npos)
-                return true;
+                return CHUNK_DECODE_OK;
 
             if (pos + 2 == raw.size() &&
                 raw.compare(pos, 2, "\r\n") == 0)
-                return true;
+                return CHUNK_DECODE_OK;
 
-            return false;
+            return CHUNK_DECODE_MALFORMED;
         }
 
         if (chunkSize > raw.size() - pos)
-            return false;
+            return CHUNK_DECODE_MALFORMED;
 
         if (maxBodySize > 0)
         {
             if (decoded.size() > maxBodySize)
-                return false;
+                return CHUNK_DECODE_TOO_LARGE;
 
             if (chunkSize > maxBodySize - decoded.size())
-                return false;
+                return CHUNK_DECODE_TOO_LARGE;
         }
 
         decoded.append(raw, pos, chunkSize);
@@ -164,10 +171,10 @@ static bool decodeChunkedBody(const std::string &raw,
         pos += chunkSize;
 
         if (pos + 2 > raw.size())
-            return false;
+            return CHUNK_DECODE_MALFORMED;
 
         if (raw.compare(pos, 2, "\r\n") != 0)
-            return false;
+            return CHUNK_DECODE_MALFORMED;
 
         pos += 2;
     }
@@ -455,13 +462,16 @@ std::string handlePOST(const HttpRequest &req,
         if (!isChunkedEncoding(transferEncodingHeader))
             return errorResponse(501, "", &serv);
 
-        if (!decodeChunkedBody(
-                req.body,
-                body,
-                maxBodySize))
-        {
+        ChunkDecodeResult decodeResult = decodeChunkedBody(
+            req.body,
+            body,
+            maxBodySize);
+
+        if (decodeResult == CHUNK_DECODE_TOO_LARGE)
+            return errorResponse(413, "", &serv);
+
+        if (decodeResult != CHUNK_DECODE_OK)
             return errorResponse(400, "", &serv);
-        }
 
         if (maxBodySize > 0 &&
             body.size() > maxBodySize)
