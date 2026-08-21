@@ -37,7 +37,7 @@ HttpRequest	parsing_header(std::string req_buffer)
 	{
 		tmp = req.headers["Host"];
 		if (tmp.find(":") != std::string::npos)
-			req.host = tmp.substr(0, tmp.find(":"));
+			req.host = req.host.substr(0, req.host.find(":"));
 		else
 			req.host = tmp;
 	}
@@ -84,44 +84,7 @@ bool is_bodyComplete(t_client &c)
 	size_t body_start = header_end + 4;
 
 	if (c.is_chunked)
-	{
-		if (c.req_buffer.size() < body_start + 5 ||
-			c.req_buffer.compare(c.req_buffer.size() - 4, 4,
-						 "\r\n\r\n") != 0)
-			return false;
-
-		size_t zero_line = c.req_buffer.rfind("\r\n0");
-
-		if (zero_line == std::string::npos || zero_line + 2 < body_start)
-		{
-			if (c.req_buffer.compare(body_start, 1, "0") != 0)
-				return false;
-			zero_line = body_start;
-		}
-		else
-			zero_line += 2;
-
-		size_t line_end = c.req_buffer.find("\r\n", zero_line);
-		if (line_end == std::string::npos)
-			return false;
-
-		std::string size_line =
-			c.req_buffer.substr(zero_line, line_end - zero_line);
-		size_t semicolon = size_line.find(';');
-		if (semicolon != std::string::npos)
-			size_line.erase(semicolon);
-
-		if (size_line.empty())
-			return false;
-
-		for (size_t i = 0; i < size_line.size(); ++i)
-		{
-			if (size_line[i] != '0')
-				return false;
-		}
-
-		return true;
-	}
+		return c.req_buffer.find("0\r\n\r\n", body_start) != std::string::npos;
 
 	if (c.content_len == 0)
 		return true;
@@ -130,156 +93,50 @@ bool is_bodyComplete(t_client &c)
 	return body_received >= c.content_len;
 }
 
-static bool writeCgiBody(t_client &c, const char *data, size_t size)
+void	removing_client(int epfd, int fd, std::map<int, t_client> &clients)
 {
-	size_t offset = 0;
+	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+	clients.erase(fd);
+	close(fd);
+}
 
-	while (offset < size)
+void	checking_timout(int epfd, std::map<int, t_client> &clients,
+	std::map<int, std::vector<ServerConfig> >& socket_server)
+{
+	time_t now = time(NULL);
+	std::map<int, t_client>::iterator it = clients.begin();
+	while (it != clients.end())
 	{
-		ssize_t written = write(c.cgi_body_fd, data + offset, size - offset);
-
-		if (written > 0)
+		if (it->second.is_cgi && now - it->second.cgi_timing > 5)
 		{
-			offset += static_cast<size_t>(written);
-			c.cgi_body_size += static_cast<size_t>(written);
+			kill(it->second.pid, SIGKILL);
+
+			int fd = it->first;
+			int fd_in = it->second.fd_in;
+			int fd_out = it->second.fd_out;
+
+			std::vector<ServerConfig> &servers = socket_server[it->second.listen_socket];
+			ServerConfig &serv = selecting_server(it->second.req, servers);
+
+			removing_client(epfd, fd_in, clients);
+			removing_client(epfd, fd_out, clients);
+			std::string response = errorResponse(504, "", &serv);
+			write(fd, response.c_str(), response.size());
+			removing_client(epfd, fd, clients);
+			it = clients.begin();
+
+			std::cout << "cgi client removed\n";
 		}
-		else if (written < 0 && errno == EINTR)
-			continue;
+		else if (now - it->second.timing > 5)
+		{
+			int fd = it->first;
+			it++;
+			removing_client(epfd, fd, clients);
+			std::cout << "client removed\n";
+		}
 		else
-			return false;
+			it++;
 	}
-
-	return true;
-}
-
-static bool spoolCgiOutput(t_client &c, const char *data, size_t size)
-{
-	if (c.cgi_headers_parsed)
-		return writeCgiBody(c, data, size);
-
-	c.cgi_output.append(data, size);
-	size_t header_end = c.cgi_output.find("\r\n\r\n");
-	size_t separator_size = 4;
-
-	if (header_end == std::string::npos)
-	{
-		header_end = c.cgi_output.find("\n\n");
-		separator_size = 2;
-	}
-
-	if (header_end == std::string::npos)
-	{
-		if (c.cgi_output.size() <= 65536)
-			return true;
-
-		if (!writeCgiBody(c, c.cgi_output.data(), c.cgi_output.size()))
-			return false;
-
-		c.cgi_output.clear();
-		c.cgi_headers_parsed = true;
-		return true;
-	}
-
-	c.cgi_header_block = c.cgi_output.substr(0, header_end);
-	size_t body_start = header_end + separator_size;
-
-	if (body_start < c.cgi_output.size() &&
-		!writeCgiBody(c, c.cgi_output.data() + body_start,
-					  c.cgi_output.size() - body_start))
-		return false;
-
-	c.cgi_output.clear();
-	c.cgi_headers_parsed = true;
-	return true;
-}
-
-static bool finishCgiOutput(t_client &c)
-{
-	if (!c.cgi_headers_parsed)
-	{
-		if (!c.cgi_output.empty() &&
-			!writeCgiBody(c, c.cgi_output.data(), c.cgi_output.size()))
-			return false;
-
-		c.cgi_output.clear();
-		c.cgi_headers_parsed = true;
-	}
-
-	if (lseek(c.cgi_body_fd, 0, SEEK_SET) < 0)
-		return false;
-
-	c.res_buffer = CGIHandler::buildResponseHeader(
-		c.cgi_header_block, c.cgi_body_size);
-	c.response_sent = 0;
-	c.cgi_output_sent = 0;
-	c.cgi_finished = true;
-	return true;
-}
-
-static bool sendCgiResponse(t_client &c)
-{
-	while (true)
-	{
-		if (c.response_sent < c.res_buffer.size())
-		{
-			ssize_t sent = send(c.fd,
-				c.res_buffer.data() + c.response_sent,
-				c.res_buffer.size() - c.response_sent, 0);
-
-			if (sent > 0)
-			{
-				c.response_sent += static_cast<size_t>(sent);
-				continue;
-			}
-			if (sent < 0 && errno == EINTR)
-				continue;
-			if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-				return false;
-			return true;
-		}
-
-		if (c.cgi_output_sent == c.cgi_output.size())
-		{
-			char buffer[65536];
-			ssize_t len = read(c.cgi_body_fd, buffer, sizeof(buffer));
-
-			if (len > 0)
-			{
-				c.cgi_output.assign(buffer, static_cast<size_t>(len));
-				c.cgi_output_sent = 0;
-			}
-			else if (len < 0 && errno == EINTR)
-				continue;
-			else
-				return true;
-		}
-
-		ssize_t sent = send(c.fd,
-			c.cgi_output.data() + c.cgi_output_sent,
-			c.cgi_output.size() - c.cgi_output_sent, 0);
-
-		if (sent > 0)
-		{
-			c.cgi_output_sent += static_cast<size_t>(sent);
-			continue;
-		}
-		if (sent < 0 && errno == EINTR)
-			continue;
-		if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-			return false;
-		return true;
-	}
-}
-
-static void closeCgiPipe(int epfd, int pipe_fd,
-						 std::map<int, int> &cgi_owners)
-{
-	if (pipe_fd < 0)
-		return;
-
-	epoll_ctl(epfd, EPOLL_CTL_DEL, pipe_fd, NULL);
-	cgi_owners.erase(pipe_fd);
-	close(pipe_fd);
 }
 
 void	multiplexing(std::vector<int> &sockets,
@@ -290,11 +147,12 @@ void	multiplexing(std::vector<int> &sockets,
 		add_epoll(epfd, sockets[s], 0);
 	struct epoll_event events[1024];
 	std::map <int, t_client> clients;
-	std::map <int, int> cgi_owners;
 	
 	while (1)
 	{
-		int e = epoll_wait(epfd, events, 2, -1);
+		int e = epoll_wait(epfd, events, 2, 1000);
+		checking_timout(epfd, clients, socket_server);
+
 		for (int i = 0; i < e; i++)
 		{
 			int fd = events[i].data.fd;
@@ -316,136 +174,47 @@ void	multiplexing(std::vector<int> &sockets,
 				t_client cl;
 				cl.listen_socket = fd;
 				cl.fd = cfd;
+				cl.timing = time(NULL);
+				// std::cout << cl.timing << "time accpeting" << std::endl;
 				clients[cfd] = cl;
 				add_epoll(epfd, cfd, 0);
 			}
-			else if (cgi_owners.find(fd) != cgi_owners.end())
-			{
-				int original_fd = cgi_owners[fd];
-				std::map<int, t_client>::iterator client_it =
-					clients.find(original_fd);
-
-				if (client_it == clients.end())
-				{
-					closeCgiPipe(epfd, fd, cgi_owners);
-					continue;
-				}
-
-				t_client &c = client_it->second;
-
-				if (fd == c.fd_out)
-				{
-					char buffer[65536];
-					ssize_t len = read(fd, buffer, sizeof(buffer));
-
-					if (len > 0)
-					{
-						if (!spoolCgiOutput(c, buffer,
-										static_cast<size_t>(len)))
-							c.cgi_header_block =
-								"Status: 500 Internal Server Error";
-					}
-					else if (len == 0)
-					{
-						pid_t child_pid = c.pid;
-
-						closeCgiPipe(epfd, fd, cgi_owners);
-						c.fd_out = -1;
-
-						if (!finishCgiOutput(c))
-						{
-							c.cgi_header_block =
-								"Status: 500 Internal Server Error";
-							c.cgi_body_size = 0;
-							lseek(c.cgi_body_fd, 0, SEEK_SET);
-							c.res_buffer = CGIHandler::buildResponseHeader(
-								c.cgi_header_block, 0);
-							c.cgi_finished = true;
-						}
-
-						add_epoll(epfd, original_fd, 1);
-						waitpid(child_pid, NULL, 0);
-					}
-					else if (len < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-					{
-						closeCgiPipe(epfd, fd, cgi_owners);
-						c.fd_out = -1;
-						c.cgi_header_block =
-							"Status: 502 Bad Gateway";
-						c.cgi_headers_parsed = true;
-						finishCgiOutput(c);
-						add_epoll(epfd, original_fd, 1);
-					}
-				}
-				else if (fd == c.fd_in)
-				{
-					const std::string &body = c.req.body;
-					ssize_t written = 0;
-
-					if (c.cgi_input_sent < body.size())
-					{
-						written = write(c.fd_in,
-							body.data() + c.cgi_input_sent,
-							body.size() - c.cgi_input_sent);
-
-						if (written > 0)
-							c.cgi_input_sent += static_cast<size_t>(written);
-					}
-
-					if (c.cgi_input_sent == body.size())
-					{
-						closeCgiPipe(epfd, fd, cgi_owners);
-						c.fd_in = -1;
-						std::string empty;
-						c.req.body.swap(empty);
-					}
-					else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-					{
-						closeCgiPipe(epfd, fd, cgi_owners);
-						c.fd_in = -1;
-						std::string empty;
-						c.req.body.swap(empty);
-					}
-				}
-			}
 			else
 			{
-				std::map<int, t_client>::iterator client_it = clients.find(fd);
+				t_client &c = clients[fd];
 
-				if (client_it == clients.end())
-					continue;
-
-				t_client &c = client_it->second;
-
-				if (c.is_cgi && c.cgi_finished)
+				if (c.is_cgi && fd == c.fd_out)
 				{
-					if (sendCgiResponse(c))
+					char buffer[1024] = "";
+					int len = read(c.fd_out, buffer, sizeof(buffer));
+					c.cgi_output += std::string(buffer, len);
+					if (len == 0)
 					{
-						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-						if (c.cgi_body_fd >= 0)
-							close(c.cgi_body_fd);
-						close(fd);
-						clients.erase(fd);
+						t_client &c_original = clients[c.fd];
+						c_original.res_buffer = CGIHandler::wrapResponse(c.cgi_output);
+						write(c_original.fd, c_original.res_buffer.c_str(), c_original.res_buffer.size());
+						removing_client(epfd, c_original.fd, clients);
+						removing_client(epfd, fd, clients);
 					}
 				}
-				else if (!c.is_cgi)
+				else if (c.is_cgi && fd == c.fd_in)
 				{
-					char buffer[65536];
+					std::string body = c.req_buffer.substr(c.req_buffer.find("\r\n\r\n") + 4);
+					write(c.fd_in, body.c_str(), body.size());
+					removing_client(epfd, c.fd_in, clients);
+				}
+				else
+				{
+					char buffer[1024] = "";
 					int len = recv(fd, buffer, sizeof(buffer), 0);
 
-					if (len < 0 &&
-						(errno == EAGAIN || errno == EWOULDBLOCK))
-						continue;
-
 					if (len <= 0)
-					{
-						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-						clients.erase(fd);
-						close(fd);
-					}
+						removing_client(epfd, fd, clients);
 					else
 					{
 						c.req_buffer += std::string(buffer, len);
+						c.timing = time(NULL);
+						// std::cout << c.timing << "time receiving" << std::endl;
 						if (!c.is_header_parsed && c.req_buffer.find("\r\n\r\n") != std::string::npos)
 						{
 							c.req = parsing_header(c.req_buffer);
@@ -461,10 +230,7 @@ void	multiplexing(std::vector<int> &sockets,
 						{
 							size_t body_pos = c.req_buffer.find("\r\n\r\n") + 4;
 							if (body_pos != std::string::npos)
-							{
-								c.req_buffer.erase(0, body_pos);
-								c.req.body.swap(c.req_buffer);
-							}
+								c.req.body = c.req_buffer.substr(body_pos);
 
 							std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
 							ServerConfig& serv = selecting_server(c.req, servers);
@@ -478,40 +244,36 @@ void	multiplexing(std::vector<int> &sockets,
 							if (it != loc.cgi_pass.end())
 							{
 								std::string scriptPath = buildPath(c.req.path, loc);
-								char temp_path[] = "/tmp/webserv-cgi-body-XXXXXX";
-								c.cgi_body_fd = mkstemp(temp_path);
-
-								if (c.cgi_body_fd >= 0)
-									unlink(temp_path);
-
 								CGIHandler cgi(c.req, scriptPath, loc.cgi_pass.at(ext));
-								if (c.cgi_body_fd < 0 ||
-									!cgi.startCGI(c.fd_in, c.fd_out, c.pid))
-								{
-									if (c.cgi_body_fd >= 0)
-										close(c.cgi_body_fd);
-									c.res_buffer = errorResponse(500, "", &serv);
-									write(fd, c.res_buffer.c_str(), c.res_buffer.size());
-									epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-									clients.erase(fd);
-									close(fd);
-									continue;
-								}
-								cgi.releaseBody(c.req.body);
+								cgi.startCGI(c.fd_in, c.fd_out, c.pid);
+								c.cgi_timing = time(NULL);
+								// std::cout << "clients[fd].fd=" << clients[fd].fd << std::endl;
+								// std::cout << "wsl hna mor startCGI" << std::endl;
 								c.is_cgi = 1;
 								add_epoll(epfd, c.fd_in, 1);
 								add_epoll(epfd, c.fd_out, 0);
-								cgi_owners[c.fd_in] = fd;
-								cgi_owners[c.fd_out] = fd;
+								
+								int c_original = fd;
+								int tmp_fd_in = c.fd_in;
+								int tmp_fd_out = c.fd_out;
+								clients[tmp_fd_in] = c;
+								clients[tmp_fd_out] = c;
+								clients[tmp_fd_in].fd = c_original;
+								clients[tmp_fd_out].fd = c_original;
+	
+								// struct epoll_event ev;
+								// ev.events = EPOLLOUT;
+								// ev.data.fd = fd;
+								// epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
 								epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+								// std::cout << "clients[c.fd_out].fd=" << clients[c.fd_out].fd << std::endl;
 							}
 							else
 							{
+								// std::cout << "mcha\n";
 								c.res_buffer = dispatchRequest(c.req , serv);
 								write(fd, c.res_buffer.c_str(), c.res_buffer.size());
-								epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-								clients.erase(fd);
-								close(fd);
+								removing_client(epfd, fd, clients);
 							}
 						}
 					}

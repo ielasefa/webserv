@@ -1,0 +1,179 @@
+1 Happy Path Tests
+✔ Passed: 12    ✘ Failed: 2
+2 Error Handling Tests
+✔ Passed: 1    ✘ Failed: 5
+3 Client Body Size Tests
+✔ Passed: 3    ✘ Failed: 1
+4 Method Restriction Tests
+✔ Passed: 5    ✘ Failed: 0
+5 Redirection Tests
+✔ Passed: 5    ✘ Failed: 0
+6 Auto Index Tests
+✔ Passed: 4    ✘ Failed: 1
+7 Routing Tests
+✔ Passed: 5    ✘ Failed: 1
+8 CGI Tests
+✔ Passed: 7    ✘ Failed: 0
+9 Chunked Transfer Tests
+✔ Passed: 16    ✘ Failed: 3
+10 Session Tests
+✔ Passed: 3    ✘ Failed: 2
+11 Stress Tests
+✔ Passed: 5    ✘ Failed: 1
+12 Path Tests
+✔ Passed: 7    ✘ Failed: 3
+13 Minimum Evaluation Tests
+✔ Passed: 31    ✘ Failed: 1
+
+
+
+Failed tests
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 5 » Head Request Test                                │
+├────────────────────────────────────────────────────────┤
+│ Test to check if the server correctly handles a HEAD   │
+│ request by returning the same headers as GET but       │
+│ without a response body (excluding dynamic headers     │
+│ like Date and Set-Cookie).                             │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (36/36 bytes sent)   
+   ✘ FAIL   5 » Head Request Test  (missing: HTTP/1.1 200 OK)
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 12 » Post On Root Test                               │
+├────────────────────────────────────────────────────────┤
+│ Test to check if the server correctly handles a POST   │
+│ request sent to the root path.                         │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (341/341 bytes sent)   
+   ✘ FAIL   12 » Post On Root Test  (missing: HTTP/1.1 201 Created)
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 2 » Post At Exact Limit Test                         │
+├────────────────────────────────────────────────────────┤
+│ Test to check that a POST body whose size equals       │
+│ client_max_body_size exactly is accepted (boundary     │
+│ value — the check must be body_size > limit, not       │
+│ >=).                                                   │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (2139/2139 bytes sent)   
+   ✘ FAIL   2 » Post At Exact Limit Test  (missing: HTTP/1.1 201 Created)
+
+┌────────────────────────────────────────────────────────┐
+│ » Tester Request Header                                │
+├────────────────────────────────────────────────────────┤
+│ POST /upload/ HTTP/1.1                                 │
+│ Host: localhost                                        │
+│ Content-Type: text/plain                               │
+│ Content-Length: 2048                                   │
+├────────────────────────────────────────────────────────┤
+│ » Server Response Header                               │
+├────────────────────────────────────────────────────────┤
+│ HTTP/1.1 405 Method Not Allowed                        │
+│ Content-Type: text/html                                │
+│ Content-Length: 0                                      │
+│ Connection: close                                      │
+│ Set-Cookie: SESSIONID=17872728436012595061957747793;   │
+│ Path=/; Max-Age=3600; HttpOnly                         │
+├────────────────────────────────────────────────────────┤
+│ Expected: HTTP/1.1 201 Created                         │
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 2 » Auto Index Disabled Test                         │
+├────────────────────────────────────────────────────────┤
+│ Test to check that the server returns 403 Forbidden    │
+│ when autoindex is off and no default index file exists │
+│ — the directory must not be listed.                    │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (48/48 bytes sent)   
+   ✘ FAIL   2 » Auto Index Disabled Test  (missing: HTTP/1.1 403 Forbidden)
+
+┌────────────────────────────────────────────────────────┐
+│ » Tester Request Header                                │
+├────────────────────────────────────────────────────────┤
+│ GET /no-index-dir/ HTTP/1.1                            │
+│ Host: localhost                                        │
+├────────────────────────────────────────────────────────┤
+│ » Server Response Header                               │
+├────────────────────────────────────────────────────────┤
+│ HTTP/1.1 404 Not Found                                 │
+│ Content-Type: text/html                                │
+│ Content-Length: 0                                      │
+│ Connection: close                                      │
+│ Set-Cookie:                                            │
+│ SESSIONID=17872733219964682595061025202362; Path=/;    │
+│ Max-Age=3600; HttpOnly                                 │
+├────────────────────────────────────────────────────────┤
+
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 3 » Forbidden File Test                              │
+├────────────────────────────────────────────────────────┤
+│ Server must return 403 when requesting a file with     │
+│ chmod 000.                                             │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (48/48 bytes sent)   
+   ✘ FAIL   3 » Forbidden File Test  (missing: HTTP/1.1 403 Forbidden)
+
+┌────────────────────────────────────────────────────────┐
+│ » Server Response                                      │
+├────────────────────────────────────────────────────────┤
+│ HTTP/1.1 404 Not Found                                 │
+│ Content-Type: text/html                                │
+│ Content-Length: 0                                      │
+│ Connection: close                                      │
+│ Set-Cookie: SESSIONID=1787274170430552263699783368690; │
+│ Path=/; Max-Age=3600; HttpOnly                         │
+├────────────────────────────────────────────────────────┤
+│ Expected: HTTP/1.1 403 Forbidden                       │
+└────────────────────────────────────────────────────────┘
+
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 4 » Forbidden Directory Test                         │
+├────────────────────────────────────────────────────────┤
+│ Server must return 403 when requesting a directory     │
+│ with chmod 000.                                        │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (49/49 bytes sent)   
+   ✘ FAIL   4 » Forbidden Directory Test  (missing: HTTP/1.1 403 Forbidden)
+
+┌────────────────────────────────────────────────────────┐
+│ » Server Response                                      │
+├────────────────────────────────────────────────────────┤
+│ HTTP/1.1 404 Not Found                                 │
+│ Content-Type: text/html                                │
+│ Content-Length: 0                                      │
+│ Connection: close                                      │
+│ Set-Cookie:                                            │
+│ SESSIONID=17872741704310112636991102520059; Path=/;    │
+│ Max-Age=3600; HttpOnly                                 │
+├────────────────────────────────────────────────────────┤
+│ Expected: HTTP/1.1 403 Forbidden                       │
+└────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────┐
+│ ▶ 5 » Directory Without Index Test                     │
+├────────────────────────────────────────────────────────┤
+│ Server must return 403 for a readable directory with   │
+│ no index file and autoindex disabled.                  │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (45/45 bytes sent)   
+   ✘ FAIL   5 » Directory Without Index Test  (missing: HTTP/1.1 403 Forbidden)
+
+┌────────────────────────────────────────────────────────┐
+│ » Server Response                                      │
+├────────────────────────────────────────────────────────┤
+│ HTTP/1.1 404 Not Found                                 │
+│ Content-Type: text/html                                │
+│ Content-Length: 0                                      │
+│ Connection: close                                      │
+│ Set-Cookie:                                            │
+│ SESSIONID=17872741704315562636992044897763; Path=/;    │
+│ Max-Age=3600; HttpOnly                                 │
+├────────────────────────────────────────────────────────┤
+│ Expected: HTTP/1.1 403 Forbidden                       │
+└────────────────────────────────────────────────────────┘
+
+
