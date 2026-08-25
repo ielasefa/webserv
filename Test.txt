@@ -5,3 +5,25 @@
 13 Minimum Evaluation Tests
 ✔ Passed: 31    ✘ Failed: 1
 git commit -m "fix webserv tests"
+\
+
+ 2 » Auto Index Disabled Test                         │
+├────────────────────────────────────────────────────────┤
+│ Test to check that the server returns 403 Forbidden    │
+│ when autoindex is off and no default index file exists │
+│ — the directory must not be listed.                    │
+└────────────────────────────────────────────────────────┘
+  ▶ Sending request to server... (48/48 bytes sent)   
+   ✘ FAIL   2 » Auto Index Disabled Test  (missing: HTTP/1.1 403 Forbidden)
+
+┌────────────────────────────────────────────────────────┐
+│ » Server Response                                      │
+├────────────────────────────────────────────────────────┤
+│ HTTP/1.1 404 Not Found                                 │
+│ Content-Type: text/html                                │
+│ Content-Length: 0                                      │
+│ Connection: close                                      │
+│ Set-Cookie: SESSIONID=1787677912731046630641; Path=/;  │
+│ Max-Age=3600; HttpOnly                                 │
+├────────────────────────────────────────────────────────┤
+│ Expected: HTTP/1.1 403 Forbidden    
