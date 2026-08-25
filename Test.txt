@@ -1,12 +1,6 @@
 
-8 
-9 Chunked Transfer Tests
-✔ Passed: 16    ✘ Failed: 3
-
 11 Stress Tests // sokect 
 ✔ Passed: 5    ✘ Failed: 1
 
 13 Minimum Evaluation Tests
 ✔ Passed: 31    ✘ Failed: 1
-
-
