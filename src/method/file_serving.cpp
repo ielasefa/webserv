@@ -6,7 +6,7 @@
 /*   By: iel-asef <iel-asef@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/02 21:40:26 by iel-asef          #+#    #+#             */
-/*   Updated: 2026/07/27 14:10:00 by iel-asef         ###   ########.fr       */
+/*   Updated: 2026/08/24 23:54:00 by iel-asef         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,16 @@ bool isSymlink(const std::string& path)
         return false;
 
     return S_ISLNK(s.st_mode);
+}
+
+static bool hasReadPermission(const struct stat& s)
+{
+    return (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) != 0;
+}
+
+static bool hasExecutePermission(const struct stat& s)
+{
+    return (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0;
 }
 
 std::string redirect301(const std::string& to)
@@ -37,7 +47,15 @@ std::string serveFile(const std::string& path,
     if (isSymlink(path))
         return errorResponse(403, "", config);
 
-    if (access(path.c_str(), R_OK) != 0)
+    struct stat fileStat;
+
+    if (stat(path.c_str(), &fileStat) != 0)
+        return errorResponse(404, "", config);
+
+    if (!S_ISREG(fileStat.st_mode))
+        return errorResponse(404, "", config);
+
+    if (!hasReadPermission(fileStat))
         return errorResponse(403, "", config);
 
     std::string content = readFile(path);
@@ -51,6 +69,9 @@ std::string handleRequest(const HttpRequest& req,
 {
     std::string cleanPath = normalizePath(req.path);
 
+    /*
+     * Path traversal protection.
+     */
     if (cleanPath.find("..") != std::string::npos)
         return errorResponse(403, "", config);
 
@@ -60,6 +81,9 @@ std::string handleRequest(const HttpRequest& req,
 
     std::string fullPath;
 
+    /*
+     * Upload location.
+     */
     if (loc.allow_upload && !loc.upload_path.empty())
     {
         std::string relative = cleanPath;
@@ -87,30 +111,67 @@ std::string handleRequest(const HttpRequest& req,
     {
         fullPath = buildPath(cleanPath, loc);
     }
-
+std::cerr
+    << "REQ PATH=[" << req.path << "] "
+    << "CLEAN PATH=[" << cleanPath << "] "
+    << "LOC PATH=[" << loc.path << "] "
+    << "LOC ROOT=[" << loc.root << "] "
+    << "FULL PATH=[" << fullPath << "]"
+    << std::endl;
     struct stat pathStat;
 
-    if (lstat(fullPath.c_str(), &pathStat) == 0 && S_ISLNK(pathStat.st_mode))
-        return errorResponse(403, "", config);
-
-    if (stat(fullPath.c_str(), &pathStat) != 0)
+    /*
+     * Symlink => forbidden.
+     */
+    if (lstat(fullPath.c_str(), &pathStat) == 0 &&
+        S_ISLNK(pathStat.st_mode))
     {
-        if (errno == EACCES || errno == EPERM)
-            return errorResponse(403, "", config);
-        return errorResponse(404, "", config);
+        return errorResponse(403, "", config);
     }
 
-    if (S_ISREG(pathStat.st_mode))
-        return serveFile(fullPath, config);
+    /*
+     * Path does not exist.
+     */
+    if (stat(fullPath.c_str(), &pathStat) != 0)
+        return errorResponse(404, "", config);
 
-    if (S_ISDIR(pathStat.st_mode))
+    /*
+     * Regular file.
+     */
+    if (S_ISREG(pathStat.st_mode))
     {
-        if (access(fullPath.c_str(), X_OK) != 0)
+        if (!hasReadPermission(pathStat))
             return errorResponse(403, "", config);
 
+        return serveFile(fullPath, config);
+    }
+
+    /*
+     * Directory.
+     */
+    if (S_ISDIR(pathStat.st_mode))
+    {
+        /*
+         * Directory must be readable and searchable.
+         *
+         * chmod 000 directory
+         * => 403 Forbidden
+         */
+        if (!hasReadPermission(pathStat) ||
+            !hasExecutePermission(pathStat))
+        {
+            return errorResponse(403, "", config);
+        }
+
+        /*
+         * Directory URL must end with "/".
+         */
         if (!hasSlash && cleanPath != "/")
             return redirect301(cleanPath + "/");
 
+        /*
+         * Upload directory handling.
+         */
         if (loc.allow_upload && !loc.upload_path.empty())
         {
             if (!loc.autoindex)
@@ -119,29 +180,54 @@ std::string handleRequest(const HttpRequest& req,
             std::vector<std::string> files =
                 readDirectory(fullPath);
 
-            return generateAutoIndex(cleanPath, fullPath, files);
+            return generateAutoIndex(
+                cleanPath,
+                fullPath,
+                files
+            );
         }
 
+        /*
+         * Search for configured index file.
+         */
         std::string indexPath =
             buildPath(cleanPath, loc, true);
 
         if (isFile(indexPath))
-            return serveFile(indexPath, config);
-
-        if (!loc.autoindex)
         {
-            if (loc.has_explicit_index)
+            struct stat indexStat;
+
+            if (stat(indexPath.c_str(), &indexStat) != 0)
                 return errorResponse(404, "", config);
 
-            return errorResponse(403, "", config);
+            if (!hasReadPermission(indexStat))
+                return errorResponse(403, "", config);
+
+            return serveFile(indexPath, config);
         }
 
-        std::vector<std::string> files = readDirectory(fullPath);
+        /*
+         * Directory exists but no index
+         * and autoindex is disabled.
+         */
+        if (!loc.autoindex)
+            return errorResponse(403, "", config);
 
-        return generateAutoIndex(cleanPath,
-                                 fullPath,
-                                 files);
+        /*
+         * Autoindex enabled.
+         */
+        std::vector<std::string> files =
+            readDirectory(fullPath);
+
+        return generateAutoIndex(
+            cleanPath,
+            fullPath,
+            files
+        );
     }
 
+    /*
+     * Unsupported filesystem object.
+     */
     return errorResponse(404, "", config);
 }

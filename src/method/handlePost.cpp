@@ -419,7 +419,9 @@ static size_t getBodyLimit(const ServerConfig &serv,
 std::string handlePOST(const HttpRequest &req,
                        const ServerConfig &serv)
 {
-    
+    /*
+     * 1. Basic path validation
+     */
     if (req.path.empty())
         return errorResponse(400, "", &serv);
 
@@ -431,11 +433,16 @@ std::string handlePOST(const HttpRequest &req,
     if (cleanPath.empty())
         return errorResponse(400, "", &serv);
 
+    /*
+     * 2. Match location and get body limit
+     */
     LocationConfig loc = serv.matchLocation(cleanPath);
 
     size_t maxBodySize = getBodyLimit(serv, loc);
 
-    
+    /*
+     * 3. Content-Length / Transfer-Encoding
+     */
     std::string contentLengthHeader;
     std::string transferEncodingHeader;
 
@@ -445,27 +452,40 @@ std::string handlePOST(const HttpRequest &req,
     bool hasTransferEncoding =
         getHeader(req, "Transfer-Encoding", transferEncodingHeader);
 
+    /*
+     * Having both is invalid.
+     */
     if (hasContentLength && hasTransferEncoding)
         return errorResponse(400, "", &serv);
 
+    /*
+     * POST body length must be known.
+     */
     if (!hasContentLength && !hasTransferEncoding)
         return errorResponse(411, "", &serv);
 
     std::string body;
 
+    /*
+     * 4. Chunked body
+     */
     if (hasTransferEncoding)
     {
         if (containsUnsupportedTransferEncoding(
                 transferEncodingHeader))
+        {
             return errorResponse(501, "", &serv);
+        }
 
         if (!isChunkedEncoding(transferEncodingHeader))
             return errorResponse(501, "", &serv);
 
-        ChunkDecodeResult decodeResult = decodeChunkedBody(
-            req.body,
-            body,
-            maxBodySize);
+        ChunkDecodeResult decodeResult =
+            decodeChunkedBody(
+                req.body,
+                body,
+                maxBodySize
+            );
 
         if (decodeResult == CHUNK_DECODE_TOO_LARGE)
             return errorResponse(413, "", &serv);
@@ -473,10 +493,22 @@ std::string handlePOST(const HttpRequest &req,
         if (decodeResult != CHUNK_DECODE_OK)
             return errorResponse(400, "", &serv);
 
+        /*
+         * IMPORTANT:
+         * Equal to the limit is valid.
+         *
+         * 2048 > 2048 => false
+         */
         if (maxBodySize > 0 &&
             body.size() > maxBodySize)
+        {
             return errorResponse(413, "", &serv);
+        }
     }
+
+    /*
+     * 5. Content-Length body
+     */
     else
     {
         size_t contentLength = 0;
@@ -484,18 +516,36 @@ std::string handlePOST(const HttpRequest &req,
         if (!parseUnsignedSize(
                 contentLengthHeader,
                 contentLength))
+        {
             return errorResponse(400, "", &serv);
+        }
 
+        /*
+         * IMPORTANT:
+         * Use > and NOT >=
+         *
+         * limit = 2048
+         * body  = 2048
+         * => accepted
+         */
         if (maxBodySize > 0 &&
             contentLength > maxBodySize)
+        {
             return errorResponse(413, "", &serv);
+        }
 
+        /*
+         * Received body must match Content-Length.
+         */
         if (req.body.size() != contentLength)
             return errorResponse(400, "", &serv);
 
         body = req.body;
     }
 
+    /*
+     * 6. Determine destination
+     */
     std::string baseDir;
 
     if (loc.allow_upload)
@@ -514,13 +564,16 @@ std::string handlePOST(const HttpRequest &req,
     }
 
     /*
-     * 6. Content-Type.
+     * 7. Content-Type
      */
     std::string contentType;
+
     bool hasContentType =
         getHeader(req, "Content-Type", contentType);
 
-  
+    /*
+     * 8. Multipart upload
+     */
     if (hasContentType &&
         toLower(contentType).find(
             "multipart/form-data") != std::string::npos)
@@ -532,10 +585,30 @@ std::string handlePOST(const HttpRequest &req,
 
         size_t filesSaved = 0;
 
+        /*
+         * Multipart needs a directory.
+         */
+        std::string multipartDir = baseDir;
+
+        if (!isDirectory(multipartDir))
+        {
+            size_t slash = multipartDir.find_last_of('/');
+
+            if (slash != std::string::npos)
+                multipartDir =
+                    multipartDir.substr(0, slash);
+        }
+
+        if (multipartDir.empty() ||
+            !isDirectory(multipartDir))
+        {
+            return errorResponse(500, "", &serv);
+        }
+
         if (!saveMultipartFiles(
                 body,
                 boundary,
-                baseDir,
+                multipartDir,
                 filesSaved))
         {
             return errorResponse(400, "", &serv);
@@ -544,10 +617,13 @@ std::string handlePOST(const HttpRequest &req,
         return buildResponse(
             201,
             "",
-            "text/plain");
+            "text/plain"
+        );
     }
 
-   
+    /*
+     * 9. Determine filename
+     */
     std::string name;
 
     size_t slash = cleanPath.find_last_of('/');
@@ -557,12 +633,50 @@ std::string handlePOST(const HttpRequest &req,
     else
         name = cleanPath.substr(slash + 1);
 
-    if (name.empty())
-        return errorResponse(405, "", &serv);
+    /*
+     * Detect POST directly on a directory:
+     *
+     * POST /
+     * POST /upload/
+     * POST /upload
+     *
+     * In these cases we generate a filename instead
+     * of returning 405.
+     */
+    bool pathEndsWithSlash =
+        !req.path.empty() &&
+        req.path[req.path.size() - 1] == '/';
+
+    bool locationDirectoryRequest =
+        !loc.path.empty() &&
+        cleanPath == normalizePath(loc.path);
+
+    bool baseIsDirectory =
+        isDirectory(baseDir);
+
+    if (name.empty() ||
+        pathEndsWithSlash ||
+        (locationDirectoryRequest && baseIsDirectory))
+    {
+        std::ostringstream generated;
+
+        generated
+            << time(NULL)
+            << "_"
+            << getpid()
+            << "_"
+            << std::rand()
+            << ".txt";
+
+        name = generated.str();
+    }
 
     if (!isSafeFilename(name))
         return errorResponse(400, "", &serv);
 
+    /*
+     * 10. Build final target
+     */
     std::string target;
 
     if (loc.allow_upload)
@@ -571,33 +685,58 @@ std::string handlePOST(const HttpRequest &req,
 
         if (!target.empty() &&
             target[target.size() - 1] != '/')
+        {
             target += '/';
+        }
 
         target += name;
     }
     else
     {
-        target = baseDir;
-
-        if (isDirectory(target))
+        /*
+         * If buildPath() points to a directory,
+         * save the generated/requested file inside it.
+         */
+        if (isDirectory(baseDir))
         {
-            if (!target.empty() && target[target.size() - 1] != '/')
+            target = baseDir;
+
+            if (!target.empty() &&
+                target[target.size() - 1] != '/')
+            {
                 target += '/';
+            }
 
             target += name;
+        }
+        else
+        {
+            /*
+             * URI already represents a file.
+             */
+            target = baseDir;
         }
     }
 
     if (target.empty())
         return errorResponse(400, "", &serv);
 
-    if (isDirectory(target) || isSymlink(target))
+    /*
+     * Do not overwrite a directory or symlink.
+     */
+    if (isDirectory(target) ||
+        isSymlink(target))
+    {
         return errorResponse(403, "", &serv);
+    }
 
-   
+    /*
+     * 11. Create/write file
+     */
     std::ofstream file(
         target.c_str(),
-        std::ios::binary | std::ios::out);
+        std::ios::binary | std::ios::out
+    );
 
     if (!file.is_open())
         return errorResponse(500, "", &serv);
@@ -606,7 +745,10 @@ std::string handlePOST(const HttpRequest &req,
     {
         file.write(
             body.data(),
-            static_cast<std::streamsize>(body.size()));
+            static_cast<std::streamsize>(
+                body.size()
+            )
+        );
     }
 
     if (!file.good())
@@ -617,8 +759,12 @@ std::string handlePOST(const HttpRequest &req,
 
     file.close();
 
+    /*
+     * 12. POST success
+     */
     return buildResponse(
         201,
         "",
-        "text/plain");
+        "text/plain"
+    );
 }

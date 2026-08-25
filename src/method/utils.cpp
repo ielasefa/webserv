@@ -29,6 +29,22 @@ bool fileExists(const std::string& path)
     return false;
 }
 
+bool isReadableFile(const std::string& path)
+{
+    struct stat s;
+
+    if (stat(path.c_str(), &s) != 0)
+        return false;
+
+    if (!S_ISREG(s.st_mode))
+        return false;
+
+    if ((s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0)
+        return false;
+
+    return true;
+}
+
 bool isDirectory(const std::string& path)
 {
     struct stat s;

@@ -1,50 +1,89 @@
 #include "../../webserv.hpp"
 
-HttpRequest	parsing_header(std::string req_buffer)
+HttpRequest parsing_header(std::string req_buffer)
 {
-	HttpRequest req;
+    HttpRequest req;
 
-	std::string line = req_buffer.substr(0, req_buffer.find("\r"));
-	req.method = line.substr(0, line.find(" "));
-	std::string other = line.substr(line.find(" ") + 1);
-	if (other.find("?") != std::string::npos)
-	{
-		req.path = other.substr(0, other.find("?"));
-		req.query_string = other.substr(other.find("?") + 1, other.find(" ") - other.find("?") - 1);
-	}
-	else
-		req.path = other.substr(0, other.find(" "));
-	req.version = other.substr(other.find(" ") + 1);
+    size_t lineEnd = req_buffer.find("\r\n");
 
-	std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
-	while (tmp.find("\r\n") != std::string::npos)
-	{
-		line = tmp.substr(0, tmp.find("\r\n"));
-		if (line.empty())
-			break;
-		std::string key, value;
-		size_t pos = line.find(": ");
-		if (pos != std::string::npos)
-		{
-			key = line.substr(0, pos);
-			value = line.substr(pos + 2);
-		}
-		req.headers[key] = value;
-		tmp = tmp.substr(tmp.find("\r\n") + 2);
-	}
+    if (lineEnd == std::string::npos)
+        return req;
 
-	if (req.headers.find("Host") != req.headers.end())
-	{
-		tmp = req.headers["Host"];
-		if (tmp.find(":") != std::string::npos)
-			req.host = req.host.substr(0, req.host.find(":"));
-		else
-			req.host = tmp;
-	}
+    std::string line = req_buffer.substr(0, lineEnd);
 
-	return (req);
+    size_t firstSpace = line.find(' ');
+
+    if (firstSpace == std::string::npos)
+        return req;
+
+    size_t secondSpace = line.find(' ', firstSpace + 1);
+
+    if (secondSpace == std::string::npos)
+    {
+        req.method = line.substr(0, firstSpace);
+        req.path = line.substr(firstSpace + 1);
+        req.version = "";
+        return req;
+    }
+
+    // Request line must contain exactly 3 tokens
+    if (line.find(' ', secondSpace + 1) != std::string::npos)
+        return req;
+
+    req.method = line.substr(0, firstSpace);
+
+    std::string target =
+        line.substr(firstSpace + 1,
+                    secondSpace - firstSpace - 1);
+
+    req.version = line.substr(secondSpace + 1);
+
+    size_t queryPos = target.find('?');
+
+    if (queryPos != std::string::npos)
+    {
+        req.path = target.substr(0, queryPos);
+        req.query_string = target.substr(queryPos + 1);
+    }
+    else
+        req.path = target;
+
+    std::string tmp = req_buffer.substr(lineEnd + 2);
+
+    while (tmp.find("\r\n") != std::string::npos)
+    {
+        line = tmp.substr(0, tmp.find("\r\n"));
+
+        if (line.empty())
+            break;
+
+        size_t pos = line.find(": ");
+
+        if (pos != std::string::npos)
+        {
+            std::string key = line.substr(0, pos);
+            std::string value = line.substr(pos + 2);
+
+            req.headers[key] = value;
+        }
+
+        tmp = tmp.substr(tmp.find("\r\n") + 2);
+    }
+
+    if (req.headers.find("Host") != req.headers.end())
+    {
+        tmp = req.headers["Host"];
+
+        size_t colon = tmp.find(':');
+
+        if (colon != std::string::npos)
+            req.host = tmp.substr(0, colon);
+        else
+            req.host = tmp;
+    }
+
+    return req;
 }
-
 void	add_epoll(int epfd, int fd, bool type)
 {
 	struct epoll_event ev;
