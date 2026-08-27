@@ -1,29 +1,39 @@
+1  » Happy Path Tests
+✔ Passed: 13   ✘ Failed: 1
 
-11 Stress Tests // sokect 
+2  » Error Handling Tests
+✔ Passed: 4    ✘ Failed: 2
+
+3  » Client Body Size Tests
+✔ Passed: 4    ✘ Failed: 0
+
+4  » Method Restriction Tests
+✔ Passed: 5    ✘ Failed: 0
+
+5  » Redirection Tests
+✔ Passed: 5    ✘ Failed: 0
+
+6  » Auto Index Tests
+✔ Passed: 5    ✘ Failed: 0
+
+7  » Routing Tests
+✔ Passed: 6    ✘ Failed: 0
+
+8  » CGI Tests
+✔ Passed: 7    ✘ Failed: 0
+
+9  » Chunked Transfer Tests
+✔ Passed: 16   ✘ Failed: 3
+
+10  » Session Tests
+✔ Passed: 5    ✘ Failed: 0
+
+11  » Stress Tests
 ✔ Passed: 5    ✘ Failed: 1
 
-13 Minimum Evaluation Tests
-✔ Passed: 31    ✘ Failed: 1
-git commit -m "fix webserv tests"
-\
+12  » Path Tests
+✔ Passed: 7    ✘ Failed: 3
 
- 2 » Auto Index Disabled Test                         │
-├────────────────────────────────────────────────────────┤
-│ Test to check that the server returns 403 Forbidden    │
-│ when autoindex is off and no default index file exists │
-│ — the directory must not be listed.                    │
-└────────────────────────────────────────────────────────┘
-  ▶ Sending request to server... (48/48 bytes sent)   
-   ✘ FAIL   2 » Auto Index Disabled Test  (missing: HTTP/1.1 403 Forbidden)
-
-┌────────────────────────────────────────────────────────┐
-│ » Server Response                                      │
-├────────────────────────────────────────────────────────┤
-│ HTTP/1.1 404 Not Found                                 │
-│ Content-Type: text/html                                │
-│ Content-Length: 0                                      │
-│ Connection: close                                      │
-│ Set-Cookie: SESSIONID=1787677912731046630641; Path=/;  │
-│ Max-Age=3600; HttpOnly                                 │
-├────────────────────────────────────────────────────────┤
-│ Expected: HTTP/1.1 403 Forbidden    
+13  » Minimum Evaluation Tests
+1-15 23-31
+✔ Passed: 22   ✘ Failed: 0

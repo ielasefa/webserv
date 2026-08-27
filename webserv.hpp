@@ -65,6 +65,8 @@ struct t_client
     bool is_header_parsed;
     size_t content_len;
     bool is_chunked;
+
+    t_client();
 };
 
 struct HttpResponse
