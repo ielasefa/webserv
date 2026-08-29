@@ -2,7 +2,7 @@
 ✔ Passed: 13   ✘ Failed: 1
 
 2  » Error Handling Tests
-✔ Passed: 4    ✘ Failed: 2
+✔ Passed: 5    ✘ Failed: 1
 
 3  » Client Body Size Tests
 ✔ Passed: 4    ✘ Failed: 0
@@ -13,8 +13,8 @@
 5  » Redirection Tests
 ✔ Passed: 5    ✘ Failed: 0
 
-6  » Auto Index Tests
-✔ Passed: 5    ✘ Failed: 0
+6  » Auto Index Tests //
+✔ Passed: 4    ✘ Failed: 1
 
 7  » Routing Tests
 ✔ Passed: 6    ✘ Failed: 0
@@ -32,8 +32,11 @@
 ✔ Passed: 5    ✘ Failed: 1
 
 12  » Path Tests
-✔ Passed: 7    ✘ Failed: 3
+✔ Passed: 10    ✘ Failed: 0
 
 13  » Minimum Evaluation Tests
 1-15 23-31
 ✔ Passed: 22   ✘ Failed: 0
+
+
+
