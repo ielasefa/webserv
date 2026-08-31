@@ -387,7 +387,7 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
             while (!isEnd() && current() != ";")
             {
                 std::string method = consume();
-                if (method != "GET" && method != "POST" && method != "DELETE")
+                if (method != "GET" && method != "POST" && method != "DELETE" && method != "HEAD")
                 {
                     error("Unknown method in 'limit_except': '" + method + "'");
                     return false;

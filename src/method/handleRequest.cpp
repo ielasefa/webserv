@@ -809,7 +809,7 @@ std::string dispatchRequest(
     /*
      * 15. GET.
      */
-    if (cleanReq.method == "GET")
+    if (cleanReq.method == "GET" || cleanReq.method == "HEAD")
     {
         std::string response =
             handleRequest(

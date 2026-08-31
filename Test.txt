@@ -1,8 +1,8 @@
 1  » Happy Path Tests
-✔ Passed: 13   ✘ Failed: 1
+✔ Passed: 14   ✘ Failed: 0
 
 2  » Error Handling Tests
-✔ Passed: 5    ✘ Failed: 1
+✔ Passed: 6    ✘ Failed: 0
 
 3  » Client Body Size Tests
 ✔ Passed: 4    ✘ Failed: 0
@@ -13,8 +13,8 @@
 5  » Redirection Tests
 ✔ Passed: 5    ✘ Failed: 0
 
-6  » Auto Index Tests //
-✔ Passed: 4    ✘ Failed: 1
+6  » Auto Index Tests
+✔ Passed: 5    ✘ Failed: 0
 
 7  » Routing Tests
 ✔ Passed: 6    ✘ Failed: 0
@@ -23,7 +23,7 @@
 ✔ Passed: 7    ✘ Failed: 0
 
 9  » Chunked Transfer Tests
-✔ Passed: 16   ✘ Failed: 3
+✔ Passed: 19   ✘ Failed: 0
 
 10  » Session Tests
 ✔ Passed: 5    ✘ Failed: 0
@@ -35,8 +35,8 @@
 ✔ Passed: 10    ✘ Failed: 0
 
 13  » Minimum Evaluation Tests
-1-15 23-31
-✔ Passed: 22   ✘ Failed: 0
+
+✔ Passed: 25   ✘ Failed: 1
 
 
 

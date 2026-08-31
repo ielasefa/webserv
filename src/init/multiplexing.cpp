@@ -1,76 +1,20 @@
 #include "../../webserv.hpp"
 
 t_client::t_client()
-    : listen_socket(-1),
-      fd(-1),
-      timing(0),
+	: listen_socket(-1),
+	  fd(-1),
+	  timing(0),
 
 	  fd_in(-1),
-      fd_out(-1),
-      pid(-1),
-      is_cgi(false),
-      cgi_timing(0),
+	  fd_out(-1),
+	  pid(-1),
+	  is_cgi(false),
+	  cgi_timing(0),
 
-      is_header_parsed(false),
-      content_len(0),
-      is_chunked(false)
+	  is_header_parsed(false),
+	  content_len(0),
+	  is_chunked(false)
 {}
-
-HttpRequest	parsing_header(std::string req_buffer)
-{
-	HttpRequest req;
-
-	std::string line = req_buffer.substr(0, req_buffer.find("\r"));
-	req.method = line.substr(0, line.find(" "));
-	std::string other = line.substr(line.find(" ") + 1);
-	if (other.find("?") != std::string::npos)
-	{
-		req.path = other.substr(0, other.find("?"));
-		req.query_string = other.substr(other.find("?") + 1, other.find(" ") - other.find("?") - 1);
-	}
-	else
-		req.path = other.substr(0, other.find(" "));
-	req.version = other.substr(other.find(" ") + 1);
-
-	std::string tmp = req_buffer.substr(req_buffer.find("\r\n") + 2);
-	while (tmp.find("\r\n") != std::string::npos)
-	{
-		line = tmp.substr(0, tmp.find("\r\n"));
-		if (line.empty())
-			break;
-		std::string key, value;
-		size_t pos = line.find(": ");
-		if (pos != std::string::npos)
-		{
-			key = line.substr(0, pos);
-			value = line.substr(pos + 2);
-		}
-		req.headers[key] = value;
-		tmp = tmp.substr(tmp.find("\r\n") + 2);
-	}
-
-	if (req.headers.find("Host") != req.headers.end())
-	{
-		tmp = req.headers["Host"];
-		if (tmp.find(":") != std::string::npos)
-			req.host = req.host.substr(0, req.host.find(":"));
-		else
-			req.host = tmp;
-	}
-
-	return (req);
-}
-
-void	add_epoll(int epfd, int fd, bool type)
-{
-	struct epoll_event ev;
-	if (type)
-		ev.events = EPOLLOUT;
-	else
-		ev.events = EPOLLIN;
-	ev.data.fd = fd;
-	epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev);
-}
 
 ServerConfig& selecting_server(HttpRequest& req, std::vector<ServerConfig>& servers)
 {
@@ -82,38 +26,6 @@ ServerConfig& selecting_server(HttpRequest& req, std::vector<ServerConfig>& serv
 	return (servers[0]);
 }
 
-bool is_bodyComplete(t_client &c)
-{
-	size_t header_end = c.req_buffer.find("\r\n\r\n");
-	if (header_end == std::string::npos)
-		return false;
-
-	size_t body_start = header_end + 4;
-
-	if (c.is_chunked)
-		return c.req_buffer.find("0\r\n\r\n", body_start) != std::string::npos;
-
-	if (c.content_len == 0)
-		return true;
-
-	size_t body_received = c.req_buffer.size() - body_start;
-	return body_received >= c.content_len;
-}
-
-void	removing_client(int epfd, int fd, std::map<int, t_client> &clients)
-{
-	epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-	clients.erase(fd);
-	close(fd);
-}
-
-void	switching_toEPOLLOUT(int epfd, int fd)
-{
-	struct epoll_event ev;
-	ev.events = EPOLLOUT;
-	ev.data.fd = fd;
-	epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
-}
 void	checking_timout(int epfd, std::map<int, t_client> &clients,
 	std::map<int, std::vector<ServerConfig> >& socket_server)
 {
@@ -121,7 +33,7 @@ void	checking_timout(int epfd, std::map<int, t_client> &clients,
 	std::map<int, t_client>::iterator it = clients.begin();
 	while (it != clients.end())
 	{
-		if (it->second.is_cgi && now - it->second.cgi_timing > 5)
+		if (it->second.is_cgi && now - it->second.cgi_timing > 20)
 		{
 			kill(it->second.pid, SIGKILL);
 			
@@ -141,7 +53,7 @@ void	checking_timout(int epfd, std::map<int, t_client> &clients,
 
 			std::cout << "cgi client removed\n";
 		}
-		else if (now - it->second.timing > 5)
+		else if (now - it->second.timing > 30)
 		{
 			int fd = it->first;
 			it++;
@@ -155,24 +67,24 @@ void	checking_timout(int epfd, std::map<int, t_client> &clients,
 
 void	handling_cgiIn(int epfd, int fd, t_client &c, std::map<int, t_client> &clients)
 {
-	std::string body = c.req_buffer.substr(c.req_buffer.find("\r\n\r\n") + 4);
-
-	if (body.empty())
+	if (c.req.body.empty())
 	{
 		removing_client(epfd, fd, clients);
 		return;
 	}
 
-	int len = write(c.fd_in, body.c_str(), body.size());
+	int len = write(c.fd_in, c.req.body.c_str(), c.req.body.size());
 	if (len > 0)
 	{
-		body.erase(0, len);
-		if (body.empty())
+		c.req.body.erase(0, len);
+		if (c.req.body.empty())
 			removing_client(epfd, fd, clients);
 	}
-	else if (len < 0)
+	else
+	{
 		std::cerr << "Error: failure in write()" << std::endl;
-
+		removing_client(epfd, fd, clients);
+	}
 }
 
 void	handling_cgiOut(int epfd, int fd, t_client &c, std::map<int, t_client> &clients)
@@ -201,13 +113,24 @@ void	handling_cgiOut(int epfd, int fd, t_client &c, std::map<int, t_client> &cli
 void	processing_completeReq(int epfd, int fd, t_client &c, std::map<int, t_client> &clients,
 							std::map<int, std::vector<ServerConfig> > &socket_server)
 {
-	size_t body_pos = c.req_buffer.find("\r\n\r\n");
-	if (body_pos != std::string::npos)
-		c.req.body = c.req_buffer.substr(body_pos + 4);
 
 	std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
 	ServerConfig& serv = selecting_server(c.req, servers);
 	LocationConfig loc = serv.matchLocation(c.req.path);
+
+	size_t body_pos = c.req_buffer.find("\r\n\r\n") + 4;
+	if (c.is_chunked)
+	{
+		c.req.body = combining_chunks(c.req_buffer, body_pos);
+	
+		c.req.headers.erase("Transfer-Encoding");
+		std::ostringstream oss;
+		oss << c.req.body.size();
+		c.req.headers["Content-Length"] = oss.str();
+	}
+	else
+		c.req.body = c.req_buffer.substr(body_pos);
+
 	std::string ext = "";
 	size_t pos = c.req.path.find_last_of(".");
 	if (pos != std::string::npos)
@@ -251,6 +174,15 @@ void	receiving_request(int epfd, int fd, t_client &c, std::map<int, t_client> &c
 		return;
 	if (len == 0)
 	{
+		if (c.is_chunked && !is_bodyComplete(c))
+		{
+			std::vector<ServerConfig> &servers = socket_server[c.listen_socket];
+			ServerConfig &serv = selecting_server(c.req, servers);
+
+			c.res_buffer = errorResponse(400, "", &serv);
+			switching_toEPOLLOUT(epfd, fd);
+			return;
+		}
 		removing_client(epfd, fd, clients);
 		return;
 	}
@@ -263,7 +195,7 @@ void	receiving_request(int epfd, int fd, t_client &c, std::map<int, t_client> &c
 		{
 			c.req = parsing_header(c.req_buffer);
 			c.is_header_parsed = true;
-
+ 
 			if (c.req.headers.find("Content-Length") != c.req.headers.end())
 				c.content_len = std::atoi(c.req.headers["Content-Length"].c_str());
 			if (c.req.headers.find("Transfer-Encoding") != c.req.headers.end() && c.req.headers["Transfer-Encoding"] == "chunked")
@@ -298,7 +230,27 @@ void	handling_write(int epfd, int fd, std::map<int, t_client> &clients)
 	{
 		c.res_buffer.erase(0, len);
 		if (c.res_buffer.empty())
-			removing_client(epfd, fd, clients);
+		{
+			if (c.req.headers["Connection"] == "close")
+			{
+				removing_client(epfd, fd, clients);
+				return;
+			}
+		
+			// keep-alive
+			c.req_buffer.clear();
+			c.req = HttpRequest();
+			c.res_buffer.clear();
+		
+			c.is_header_parsed = false;
+			c.content_len = 0;
+			c.is_chunked = false;
+			c.is_cgi = false;
+			c.timing = time(NULL);
+		
+			switching_toEPOLLIN(epfd, fd);
+		}
+			// removing_client(epfd, fd, clients);
 	}
 	else if (len < 0)
 		std::cerr << "Error: failure in write()" << std::endl;

@@ -17,7 +17,9 @@ SRC = webserv.cpp \
       src/parsing/LocationConfig.cpp \
       src/parsing/CGIHandler.cpp \
       src/init/multiplexing.cpp \
-      src/init/server.cpp
+      src/init/server.cpp \
+      src/init/request_utils.cpp \
+      src/init/epoll_utils.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
