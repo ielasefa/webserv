@@ -57,9 +57,7 @@ std::vector<std::string> readDirectory(const std::string& path)
     return files;
 }
 
-std::string generateAutoIndex(const std::string& requestPath,
-                              const std::string& directoryPath,
-                              const std::vector<std::string>& files)
+std::string generateAutoIndex(const std::string& requestPath, const std::string& directoryPath, const std::vector<std::string>& files)
 {
     std::string base = requestPath;
 

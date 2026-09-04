@@ -58,10 +58,8 @@ std::string getMimeType(const std::string& path)
     return "application/octet-stream";
 }
 
-std::string buildResponse(int code,
-                          const std::string& body,
-                          const std::string& mime,
-                          const std::vector<std::string>& extraHeaders)
+std::string buildResponse(int code, const std::string& body, const std::string& mime,
+                        const std::vector<std::string>& extraHeaders)
 {
     std::string res;
 
@@ -82,9 +80,7 @@ std::string buildResponse(int code,
     return res;
 }
 
-std::string buildResponse(int code,
-                          const std::string& body,
-                          const std::string& mime)
+std::string buildResponse(int code, const std::string& body, const std::string& mime)
 {
     std::vector<std::string> emptyHeaders;
     return buildResponse(code, body, mime, emptyHeaders);
