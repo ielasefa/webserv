@@ -28,9 +28,7 @@ static std::string toLower(const std::string& value)
     return result;
 }
 
-static bool getHeaderValue(const HttpRequest& req,
-                           const std::string& wanted,
-                           std::string& value)
+static bool getHeaderValue(const HttpRequest& req, const std::string& wanted, std::string& value)
 {
     std::string target = toLower(wanted);
 
@@ -61,8 +59,7 @@ static std::string trimSessionValue(const std::string& value)
     return value.substr(begin, end - begin);
 }
 
-static bool extractSessionId(const HttpRequest& req,
-                             std::string& sessionId)
+static bool extractSessionId(const HttpRequest& req, std::string& sessionId)
 {
     std::string cookie;
     size_t start;
@@ -117,8 +114,7 @@ static std::string generateSessionId()
     return id;
 }
 
-static std::string attachSessionCookie(const HttpRequest& req,
-                                       const std::string& response)
+static std::string attachSessionCookie(const HttpRequest& req, const std::string& response)
 {
     size_t headerEnd;
     std::string sessionId;
@@ -137,8 +133,7 @@ static std::string attachSessionCookie(const HttpRequest& req,
         + response.substr(headerEnd);
 }
 
-static void addPathPart(std::vector<std::string>& parts,
-                        const std::string& part,
+static void addPathPart(std::vector<std::string>& parts, const std::string& part,
                         bool absolute)
 {
     if (part == "..")
@@ -152,8 +147,7 @@ static void addPathPart(std::vector<std::string>& parts,
         parts.push_back(part);
 }
 
-static std::string joinPathParts(const std::vector<std::string>& parts,
-                                 bool absolute)
+static std::string joinPathParts(const std::vector<std::string>& parts, bool absolute)
 {
     std::string result;
 
@@ -215,10 +209,8 @@ bool isInsideRoot(const std::string& path, const std::string& root)
     return cleanPath.compare(0, cleanRoot.size(), cleanRoot) == 0;
 }
 
-static int buildDeleteTarget(const std::string& cleanPath,
-                             const LocationConfig& loc,
-                             std::string& target,
-                             std::string& securityRoot)
+static int buildDeleteTarget(const std::string& cleanPath, const LocationConfig& loc, std::string& target,
+                            std::string& securityRoot)
 {
     if (loc.allow_upload && !loc.upload_path.empty())
     {
@@ -256,8 +248,7 @@ static int removeTarget(const std::string& target)
     return 500;
 }
 
-std::string handleDELETE(const HttpRequest& req,
-                         const ServerConfig& serv)
+std::string handleDELETE(const HttpRequest& req, const ServerConfig& serv)
 {
     std::string cleanPath;
     LocationConfig loc;
@@ -297,8 +288,7 @@ static int hexValue(char c)
     return -1;
 }
 
-static bool percentDecode(const std::string& input,
-                          std::string& output)
+static bool percentDecode(const std::string& input, std::string& output)
 {
     output.clear();
     for (size_t i = 0; i < input.size(); ++i)
@@ -348,9 +338,7 @@ static int validateRequest(const HttpRequest& req)
     return 0;
 }
 
-static int preparePath(const HttpRequest& req,
-                       std::string& decodedPath,
-                       std::string& cleanPath)
+static int preparePath(const HttpRequest& req, std::string& decodedPath, std::string& cleanPath)
 {
     if (!percentDecode(req.path, decodedPath))
         return 400;
@@ -362,9 +350,7 @@ static int preparePath(const HttpRequest& req,
     return 0;
 }
 
-static HttpRequest makeCleanRequest(const HttpRequest& req,
-                                    const std::string& decodedPath,
-                                    const std::string& cleanPath)
+static HttpRequest makeCleanRequest(const HttpRequest& req, const std::string& decodedPath, const std::string& cleanPath)
 {
     HttpRequest cleanReq = req;
 
@@ -377,9 +363,7 @@ static HttpRequest makeCleanRequest(const HttpRequest& req,
     return cleanReq;
 }
 
-static std::string executeRequest(const HttpRequest& req,
-                                  const LocationConfig& loc,
-                                  const ServerConfig& serv)
+static std::string executeRequest(const HttpRequest& req, const LocationConfig& loc, const ServerConfig& serv)
 {
     if (req.method == "GET" || req.method == "HEAD")
         return handleRequest(req, loc, &serv);
@@ -390,9 +374,7 @@ static std::string executeRequest(const HttpRequest& req,
     return errorResponse(501, "", &serv);
 }
 
-static std::string routeRequest(const HttpRequest& req,
-                                const std::string& decodedPath,
-                                const std::string& cleanPath,
+static std::string routeRequest(const HttpRequest& req, const std::string& decodedPath, const std::string& cleanPath,
                                 const ServerConfig& serv)
 {
     LocationConfig loc = serv.matchLocation(cleanPath);
