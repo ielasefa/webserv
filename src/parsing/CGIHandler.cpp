@@ -1,7 +1,5 @@
 #include "../../webserv.hpp"
 
-// static const int UNUSED_CGI_TIMEOUT = 10;
-
 CGIHandler::CGIHandler(const HttpRequest  &request,
                        const std::string  &script_path,
                        const std::string  &cgi_executable)
@@ -210,7 +208,6 @@ void CGIHandler::releaseBody(std::string &body)
 
 bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 {
-    // Process chunked body before handing it over
     if (_request.headers.count("Transfer-Encoding"))
     {
         const std::string &te = _request.headers.at("Transfer-Encoding");
@@ -227,7 +224,6 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
         return false;
     }
 
-    // Set pipes to non-blocking
     fcntl(pipe_in[1], F_SETFL, O_NONBLOCK);
     fcntl(pipe_out[0], F_SETFL, O_NONBLOCK);
 
@@ -266,7 +262,6 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 
     char **env = buildEnv();
     pid = fork();
-    // std::cout << "right after fork" << std::endl;
     if (pid < 0)
     {
         std::cerr << "[CGI] fork() failed" << std::endl;
@@ -276,7 +271,7 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
         return false;
     }
 
-    if (pid == 0) // Child Process
+    if (pid == 0) 
     {
         dup2(pipe_in[0], STDIN_FILENO);
         dup2(pipe_out[1], STDOUT_FILENO);
@@ -297,23 +292,18 @@ bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
         argv[1] = strdup(script_name.c_str());
         argv[2] = NULL;
 
-        // std::cout << "cgi_exec=" << _cgi_executable << "\nscript_path=" << _script_path << std::endl;
         execve(executable.c_str(), argv, env);
-        // perror("execve");
-        //if the excuve fails
         free(argv[0]);
         free(argv[1]);
         freeEnv(env);
         exit(1);
     }
 
-    // Parent Process
     freeEnv(env);
     
     close(pipe_in[0]);
     close(pipe_out[1]);
 
-    // Give these fd to the main server loop
     fd_in = pipe_in[1];   
     fd_out = pipe_out[0]; 
 
@@ -325,16 +315,13 @@ std::string CGIHandler::execute()
     int fd_in = -1, fd_out = -1;
     pid_t pid = -1;
     
-    // Start CGI process
     if (!startCGI(fd_in, fd_out, pid))
         return "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
     
-    // Write request body to CGI stdin if needed
     if (!_request.body.empty())
         write(fd_in, _request.body.c_str(), _request.body.size());
     close(fd_in);
     
-    // Read CGI output
     std::string cgi_output;
     char buffer[4096];
     ssize_t len;
@@ -342,9 +329,7 @@ std::string CGIHandler::execute()
         cgi_output.append(buffer, len);
     close(fd_out);
     
-    // Wait for CGI process to complete
     waitpid(pid, NULL, 0);
     
-    // Wrap response
     return wrapResponse(cgi_output);
 }
