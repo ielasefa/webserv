@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {
 	signal(SIGPIPE, SIG_IGN);
 
-	std::string config_path = "webserv.conf";
+	std::string config_path = "file.config";
 	
 	if (argc > 2)
 	{
@@ -31,7 +31,6 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
-		// std::cout << "Server started with " << servers.size() << " server(s)" << std::endl;
 		std::map<int, std::vector<ServerConfig> > socket_server;
 		std::vector<int> sockets = init_socket(servers, socket_server);
 		if (!sockets.size())
@@ -40,7 +39,6 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		multiplexing(sockets, socket_server);
-		// std::cout << "samaykom" << std::endl;
 	}
 	catch (const std::exception &e)
 	{
