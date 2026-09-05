@@ -1,1 +1,595 @@
-<h1>Webserv works!</h1>
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webserv Playground</title>
+<link rel="stylesheet" href="/assets/css/shared.css">
+<style>
+  :root {
+    --page-max: 1180px;
+    --surface: rgba(13, 18, 32, 0.78);
+    --surface-strong: rgba(17, 24, 42, 0.92);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text-main: #f5f7fb;
+    --text-soft: rgba(245, 247, 251, 0.72);
+    --text-faint: rgba(245, 247, 251, 0.52);
+    --accent: #7dd3fc;
+    --accent-strong: #38bdf8;
+    --good: #5eead4;
+    --warn: #fbbf24;
+    --danger: #fb7185;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+    --radius-xl: 24px;
+    --radius-lg: 18px;
+    --radius-md: 14px;
+  }
+
+  body {
+    margin: 0;
+    color: var(--text-main);
+    background:
+      radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.18), transparent 24%),
+      radial-gradient(circle at 82% 12%, rgba(94, 234, 212, 0.12), transparent 22%),
+      radial-gradient(circle at 50% 88%, rgba(251, 191, 36, 0.1), transparent 26%),
+      linear-gradient(135deg, #0a0d17 0%, #0f1324 55%, #0a0d17 100%);
+  }
+
+  .page-shell {
+    position: relative;
+    width: min(var(--page-max), calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0 40px;
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(180deg, rgba(18, 24, 42, 0.9), rgba(10, 14, 25, 0.84));
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+  }
+
+  .hero::before,
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    border-radius: 999px;
+    pointer-events: none;
+    filter: blur(2px);
+  }
+
+  .hero::before {
+    top: -80px;
+    right: -20px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.24), transparent 68%);
+  }
+
+  .hero::after {
+    left: -90px;
+    bottom: -120px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(94, 234, 212, 0.18), transparent 70%);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    color: var(--text-soft);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .hero-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: 28px;
+    align-items: end;
+    margin-top: 18px;
+  }
+
+  .hero h1 {
+    margin: 14px 0 12px;
+    font-size: clamp(2.4rem, 5vw, 4.75rem);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+  }
+
+  .hero p {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--text-soft);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .pill.primary {
+    border-color: rgba(56, 189, 248, 0.35);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(94, 234, 212, 0.16));
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .stat {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .stat strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 1.2rem;
+    letter-spacing: -0.03em;
+  }
+
+  .stat span {
+    color: var(--text-faint);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .section {
+    margin-top: 26px;
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+  }
+
+  .section-head span {
+    color: var(--text-faint);
+    font-size: 0.92rem;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+  }
+
+  .card.card-wide {
+    grid-column: 1 / -1;
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+
+  .card-desc {
+    margin: 8px 0 0;
+    color: var(--text-soft);
+    font-size: 0.94rem;
+    line-height: 1.6;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.16);
+    color: #bfdbfe;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .tag.success {
+    background: rgba(94, 234, 212, 0.14);
+    color: #bbf7d0;
+    border-color: rgba(94, 234, 212, 0.24);
+  }
+
+  .tag.warning {
+    background: rgba(251, 191, 36, 0.14);
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.24);
+  }
+
+  .tag.danger {
+    background: rgba(251, 113, 133, 0.16);
+    color: #fecdd3;
+    border-color: rgba(251, 113, 133, 0.28);
+  }
+
+  label {
+    display: block;
+    margin: 14px 0 6px;
+    color: var(--text-soft);
+    font-size: 0.88rem;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="file"],
+  textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-main);
+    padding: 12px 14px;
+    font: inherit;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  }
+
+  input[type="text"]::placeholder,
+  input[type="password"]::placeholder,
+  textarea::placeholder {
+    color: rgba(245, 247, 251, 0.38);
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus,
+  input[type="file"]:focus,
+  textarea:focus {
+    border-color: rgba(56, 189, 248, 0.42);
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.12);
+  }
+
+  input[type="file"] {
+    padding: 10px 14px;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 112px;
+  }
+
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  button,
+  .button-link {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    min-height: 42px;
+    padding: 0 16px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.95), rgba(59, 130, 246, 0.92));
+    color: white;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  }
+
+  button:hover,
+  .button-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(56, 189, 248, 0.18);
+    filter: brightness(1.03);
+  }
+
+  .button-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .button-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-strong);
+    color: var(--text-main);
+  }
+
+  .output {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-strong);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    min-height: 52px;
+    white-space: pre-wrap;
+  }
+
+  .footer {
+    margin-top: 18px;
+    color: var(--text-faint);
+    font-size: 0.88rem;
+    text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .hero-grid,
+    .cards {
+      grid-template-columns: 1fr;
+    }
+
+    .card.card-wide {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .page-shell {
+      width: min(100% - 20px, var(--page-max));
+      padding: 16px 0 28px;
+    }
+
+    .hero,
+    .card {
+      padding: 18px;
+      border-radius: 20px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 11vw, 3rem);
+    }
+
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .section-head {
+      flex-direction: column;
+      align-items: start;
+    }
+  }
+</style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero">
+      <span class="eyebrow">Webserv playground</span>
+      <div class="hero-grid">
+        <div>
+          <h1>Professional request tester for your server.</h1>
+          <p>
+            A cleaner landing page for trying POST, GET, file upload, raw body, and DELETE requests.
+            The layout is built to feel more polished while staying simple to use during development.
+          </p>
+          <div class="hero-actions">
+            <span class="pill primary">same-origin</span>
+            <span class="pill">CGI, upload, raw body, delete</span>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <strong>5 endpoints</strong>
+            <span>All the common flows are grouped into clear cards.</span>
+          </div>
+          <div class="stat">
+            <strong>Responsive UI</strong>
+            <span>Works on desktop and smaller screens without collapsing.</span>
+          </div>
+          <div class="stat">
+            <strong>Dark theme</strong>
+            <span>Uses the existing site palette for a more consistent look.</span>
+          </div>
+          <div class="stat">
+            <strong>Direct feedback</strong>
+            <span>DELETE responses are shown instantly inside the page.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>Request Lab</h2>
+          <span>Each card targets one behavior so testing stays quick.</span>
+        </div>
+      </div>
+
+      <div class="cards">
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">Test Python POST</h3>
+              <p class="card-desc">Submit credentials to the CGI endpoint and inspect the response.</p>
+            </div>
+            <span class="tag">POST</span>
+          </div>
+          <form action="/cgi-bin/post.py" method="POST">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="john">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="••••••">
+            <div class="button-row">
+              <button type="submit">Submit form</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">Simple form POST</h3>
+              <p class="card-desc">Sends an application/x-www-form-urlencoded payload to /submit.</p>
+            </div>
+            <span class="tag">POST</span>
+          </div>
+          <form action="/submit" method="POST">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="john">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="••••••">
+            <div class="button-row">
+              <button type="submit">Submit form</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">File upload</h3>
+              <p class="card-desc">Multipart upload flow for verifying file handling.</p>
+            </div>
+            <span class="tag warning">POST</span>
+          </div>
+          <form action="/upload" method="POST" enctype="multipart/form-data">
+            <label>Pick a file</label>
+            <input type="file" name="file">
+            <div class="button-row">
+              <button type="submit">Upload file</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">Raw body</h3>
+              <p class="card-desc">Send plain text to test how the server reads raw request bodies.</p>
+            </div>
+            <span class="tag">POST</span>
+          </div>
+          <form action="/raw" method="POST" enctype="text/plain">
+            <label>Raw text body</label>
+            <textarea name="body" rows="4" placeholder="hello server"></textarea>
+            <div class="button-row">
+              <button type="submit">Send raw</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">GET request</h3>
+              <p class="card-desc">Quickly fetch the homepage route and confirm routing works.</p>
+            </div>
+            <span class="tag success">GET</span>
+          </div>
+          <form action="/" method="GET">
+            <div class="button-row">
+              <button type="submit">GET /</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card card-wide">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">DELETE request</h3>
+              <p class="card-desc">Send a DELETE request with fetch and read the status directly below.</p>
+            </div>
+            <span class="tag danger">DELETE</span>
+          </div>
+          <label>Path to delete</label>
+          <input type="text" id="del-path" placeholder="/files/test.txt" value="/files/test.txt">
+          <div class="button-row">
+            <button type="button" onclick="sendDelete()">Send DELETE</button>
+            <button type="button" class="button-secondary" onclick="resetDeleteOutput()">Reset output</button>
+          </div>
+          <div id="del-res" class="output">No request sent yet.</div>
+        </article>
+      </div>
+    </section>
+
+    <div class="footer">Built for local testing on webserv.</div>
+  </main>
+
+  <script>
+    function sendDelete() {
+      const pathInput = document.getElementById('del-path');
+      const output = document.getElementById('del-res');
+      const path = (pathInput.value || '/files/test.txt').trim() || '/files/test.txt';
+
+      output.textContent = 'Sending DELETE ' + path + '...';
+
+      fetch(path, { method: 'DELETE' })
+        .then(function (response) {
+          output.textContent = response.status + ' ' + response.statusText;
+        })
+        .catch(function (error) {
+          output.textContent = 'Error: ' + error.message;
+        });
+    }
+
+    function resetDeleteOutput() {
+      document.getElementById('del-res').textContent = 'No request sent yet.';
+      document.getElementById('del-path').value = '/files/test.txt';
+    }
+  </script>
+</body>
+</html>
