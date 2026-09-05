@@ -1,11 +1,9 @@
-
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Webserv Playground</title>
-<link rel="stylesheet" href="/assets/css/shared.css">
 <style>
   :root {
     --page-max: 1180px;
@@ -176,6 +174,62 @@
 
   .section {
     margin-top: 26px;
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .config-card {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--surface-strong);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+  }
+
+  .config-card h3 {
+    margin: 0 0 8px;
+    font-size: 1.02rem;
+    letter-spacing: -0.02em;
+  }
+
+  .config-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .config-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+  }
+
+  .config-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .config-list strong {
+    font-size: 0.92rem;
+  }
+
+  .config-list span {
+    color: var(--text-faint);
+    font-size: 0.86rem;
+    text-align: right;
   }
 
   .section-head {
@@ -377,6 +431,7 @@
 
   @media (max-width: 900px) {
     .hero-grid,
+    .config-grid,
     .cards {
       grid-template-columns: 1fr;
     }
@@ -419,33 +474,33 @@
       <span class="eyebrow">Webserv playground</span>
       <div class="hero-grid">
         <div>
-          <h1>Professional request tester for your server.</h1>
+          <h1>Everything your config exposes, in one browser.</h1>
           <p>
-            A cleaner landing page for trying POST, GET, file upload, raw body, and DELETE requests.
-            The layout is built to feel more polished while staying simple to use during development.
+            Use this page to exercise the configured routes without leaving the browser: GET, CGI POST,
+            file upload, raw body, DELETE, session access, and redirects.
           </p>
           <div class="hero-actions">
-            <span class="pill primary">same-origin</span>
-            <span class="pill">CGI, upload, raw body, delete</span>
+            <span class="pill primary" id="server-origin">current origin</span>
+            <span class="pill">Same-origin requests</span>
           </div>
         </div>
 
         <div class="stats">
           <div class="stat">
-            <strong>5 endpoints</strong>
-            <span>All the common flows are grouped into clear cards.</span>
+            <strong>Clear routes</strong>
+            <span>Each card maps to a configured behavior.</span>
           </div>
           <div class="stat">
-            <strong>Responsive UI</strong>
-            <span>Works on desktop and smaller screens without collapsing.</span>
+            <strong>Responsive layout</strong>
+            <span>Stays readable on desktop and smaller screens.</span>
           </div>
           <div class="stat">
-            <strong>Dark theme</strong>
-            <span>Uses the existing site palette for a more consistent look.</span>
+            <strong>Live feedback</strong>
+            <span>Results stay inline instead of replacing the whole page.</span>
           </div>
           <div class="stat">
-            <strong>Direct feedback</strong>
-            <span>DELETE responses are shown instantly inside the page.</span>
+            <strong>Config-aware</strong>
+            <span>The visible routes mirror the active config file.</span>
           </div>
         </div>
       </div>
@@ -454,8 +509,58 @@
     <section class="section">
       <div class="section-head">
         <div>
+          <h2>Config map</h2>
+          <span>Quick summary of the active config file, including listen blocks and location routes.</span>
+        </div>
+      </div>
+
+      <div class="config-grid">
+        <article class="config-card">
+          <h3>webserv_main</h3>
+          <div class="config-meta">
+            <span class="tag success">8080</span>
+            <span class="tag">10M</span>
+          </div>
+          <ul class="config-list">
+            <li><strong>Listen</strong><span>127.0.0.1:8080</span></li>
+            <li><strong>Routes</strong><span>/, /upload, /cgi-bin, /session, /old-page</span></li>
+            <li><strong>Redirect</strong><span>301 to /old-page target</span></li>
+          </ul>
+        </article>
+
+        <article class="config-card">
+          <h3>webserv_virtual</h3>
+          <div class="config-meta">
+            <span class="tag success">8080</span>
+            <span class="tag warning">5M</span>
+          </div>
+          <ul class="config-list">
+            <li><strong>Listen</strong><span>127.0.0.1:8080</span></li>
+            <li><strong>Route</strong><span>/</span></li>
+            <li><strong>Index</strong><span>default.html</span></li>
+          </ul>
+        </article>
+
+        <article class="config-card">
+          <h3>webserv_secondary</h3>
+          <div class="config-meta">
+            <span class="tag success">8083</span>
+            <span class="tag danger">1M</span>
+          </div>
+          <ul class="config-list">
+            <li><strong>Listen</strong><span>127.0.0.1:8083</span></li>
+            <li><strong>Route</strong><span>/</span></li>
+            <li><strong>Autoindex</strong><span>on</span></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
           <h2>Request Lab</h2>
-          <span>Each card targets one behavior so testing stays quick.</span>
+          <span>Each card targets one route so testing stays quick and predictable.</span>
         </div>
       </div>
 
@@ -463,8 +568,8 @@
         <article class="card">
           <div class="card-top">
             <div>
-              <h3 class="card-title">Test Python POST</h3>
-              <p class="card-desc">Submit credentials to the CGI endpoint and inspect the response.</p>
+              <h3 class="card-title">CGI form submit</h3>
+              <p class="card-desc">Send form fields to /cgi-bin/post.py and inspect the parsed response.</p>
             </div>
             <span class="tag">POST</span>
           </div>
@@ -482,12 +587,12 @@
         <article class="card">
           <div class="card-top">
             <div>
-              <h3 class="card-title">Simple form POST</h3>
-              <p class="card-desc">Sends an application/x-www-form-urlencoded payload to /submit.</p>
+              <h3 class="card-title">URL-encoded POST</h3>
+              <p class="card-desc">Send an application/x-www-form-urlencoded payload to /cgi-bin/post.py.</p>
             </div>
             <span class="tag">POST</span>
           </div>
-          <form action="/submit" method="POST">
+          <form action="/cgi-bin/post.py" method="POST">
             <label>Username</label>
             <input type="text" name="username" placeholder="john">
             <label>Password</label>
@@ -502,28 +607,29 @@
           <div class="card-top">
             <div>
               <h3 class="card-title">File upload</h3>
-              <p class="card-desc">Multipart upload flow for verifying file handling.</p>
+              <p class="card-desc">Pick a file, submit it, and keep the result inline on the page.</p>
             </div>
             <span class="tag warning">POST</span>
           </div>
-          <form action="/upload" method="POST" enctype="multipart/form-data">
+          <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data" onsubmit="return sendUpload(event)">
             <label>Pick a file</label>
-            <input type="file" name="file">
+            <input type="file" name="file" id="upload-file" required>
             <div class="button-row">
               <button type="submit">Upload file</button>
             </div>
           </form>
+          <div id="upload-res" class="output">No upload sent yet.</div>
         </article>
 
         <article class="card">
           <div class="card-top">
             <div>
               <h3 class="card-title">Raw body</h3>
-              <p class="card-desc">Send plain text to test how the server reads raw request bodies.</p>
+              <p class="card-desc">Send plain text directly to the CGI echo endpoint.</p>
             </div>
             <span class="tag">POST</span>
           </div>
-          <form action="/raw" method="POST" enctype="text/plain">
+          <form action="/cgi-bin/script.py" method="POST" enctype="text/plain">
             <label>Raw text body</label>
             <textarea name="body" rows="4" placeholder="hello server"></textarea>
             <div class="button-row">
@@ -536,7 +642,7 @@
           <div class="card-top">
             <div>
               <h3 class="card-title">GET request</h3>
-              <p class="card-desc">Quickly fetch the homepage route and confirm routing works.</p>
+              <p class="card-desc">Load the homepage route and confirm the selected server responds.</p>
             </div>
             <span class="tag success">GET</span>
           </div>
@@ -551,29 +657,57 @@
           <div class="card-top">
             <div>
               <h3 class="card-title">DELETE request</h3>
-              <p class="card-desc">Send a DELETE request with fetch and read the status directly below.</p>
+              <p class="card-desc">Delete a file under the upload tree and read the result directly below.</p>
             </div>
             <span class="tag danger">DELETE</span>
           </div>
           <label>Path to delete</label>
-          <input type="text" id="del-path" placeholder="/files/test.txt" value="/files/test.txt">
+          <input type="text" id="del-path" placeholder="/upload/delete-test1.txt" value="/upload/delete-test1.txt">
           <div class="button-row">
             <button type="button" onclick="sendDelete()">Send DELETE</button>
             <button type="button" class="button-secondary" onclick="resetDeleteOutput()">Reset output</button>
           </div>
           <div id="del-res" class="output">No request sent yet.</div>
         </article>
+
+        <article class="card card-wide">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">Session route</h3>
+              <p class="card-desc">Open the session entry point defined in the config.</p>
+            </div>
+            <span class="tag">SESSION</span>
+          </div>
+          <div class="button-row">
+            <a class="button-link" href="/session/">Open /session/</a>
+          </div>
+        </article>
+
+        <article class="card card-wide">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">Redirect test</h3>
+              <p class="card-desc">Follow the configured 301 route and confirm the target opens correctly.</p>
+            </div>
+            <span class="tag warning">301</span>
+          </div>
+          <div class="button-row">
+            <a class="button-link" href="/old-page">Open /old-page</a>
+          </div>
+        </article>
       </div>
     </section>
 
-    <div class="footer">Built for local testing on webserv.</div>
+    <div class="footer">Built for local Webserv testing.</div>
   </main>
 
   <script>
+    document.getElementById('server-origin').textContent = window.location.origin;
+
     function sendDelete() {
       const pathInput = document.getElementById('del-path');
       const output = document.getElementById('del-res');
-      const path = (pathInput.value || '/files/test.txt').trim() || '/files/test.txt';
+      const path = (pathInput.value || '/upload/delete-test1.txt').trim() || '/upload/delete-test1.txt';
 
       output.textContent = 'Sending DELETE ' + path + '...';
 
@@ -588,7 +722,44 @@
 
     function resetDeleteOutput() {
       document.getElementById('del-res').textContent = 'No request sent yet.';
-      document.getElementById('del-path').value = '/files/test.txt';
+      document.getElementById('del-path').value = '/upload/delete-test1.txt';
+    }
+
+    function sendUpload(event) {
+      event.preventDefault();
+
+      const form = document.getElementById('upload-form');
+      const fileInput = document.getElementById('upload-file');
+      const output = document.getElementById('upload-res');
+
+      if (!fileInput.files || !fileInput.files.length) {
+        output.textContent = 'Choose a file before uploading.';
+        fileInput.focus();
+        return false;
+      }
+
+      output.textContent = 'Uploading ' + fileInput.files[0].name + '...';
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form)
+      })
+        .then(function (response) {
+          if (response.ok) {
+            output.textContent = 'Upload completed: ' + response.status + ' ' + response.statusText;
+            form.reset();
+            document.getElementById('upload-file').value = '';
+          } else {
+            response.text().then(function (text) {
+              output.textContent = response.status + ' ' + response.statusText + (text ? '\n' + text : '');
+            });
+          }
+        })
+        .catch(function (error) {
+          output.textContent = 'Error: ' + error.message;
+        });
+
+      return false;
     }
   </script>
 </body>

@@ -5,7 +5,6 @@ ConfigParser::ConfigParser(const std::string &filename)
     : _filename(filename), _pos(0)
 {
 }
-// read the config file and and split it into tokenze
 bool ConfigParser::tokenize()
 {
     int fd = open(_filename.c_str(), O_RDONLY);
@@ -174,7 +173,7 @@ bool ConfigParser::parse()
             if (!parseServer(server))
                 return false;
 
-            for (size_t i; i < server.ports.size(); i++)
+            for (size_t i = 0; i < server.ports.size(); i++)
             {
                 if (server.ports[i] <= 0 || server.ports[i] > 65535)
                 {
@@ -201,7 +200,6 @@ bool ConfigParser::parse()
     return true;
 }
 
-// PARSE SERVER BLOCK
 
 bool ConfigParser::parseServer(ServerConfig &server)
 {
@@ -218,15 +216,7 @@ bool ConfigParser::parseServer(ServerConfig &server)
 
             std::string value = consume();
             size_t colon = value.find(':');
-            // if (colon != std::string::npos)
-            // {
-            //     server.host = value.substr(0, colon);
-            //     server.port = std::atoi(value.substr(colon + 1).c_str());
-            // }
-            // else
-            // {
-            //     server.port = std::atoi(value.c_str());
-            // }
+            
             int port;
             if (colon != std::string::npos)
             {
@@ -269,7 +259,6 @@ bool ConfigParser::parseServer(ServerConfig &server)
         {
             if (isEnd()) { error("Missing error code after 'error_page'"); return false; }
 
-            // Accept multiple codes on one line: error_page 500 502 503 /50x.html;
             std::vector<int> codes;
 
             while (!isEnd())
@@ -341,8 +330,6 @@ bool ConfigParser::parseServer(ServerConfig &server)
     return false;
 }
 
-// PARSE LOCATION BLOCK
-
 bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
 {
     (void)server;
@@ -407,7 +394,6 @@ bool ConfigParser::parseLocation(ServerConfig &server, LocationConfig &location)
         {
             if (isEnd()) { error("Missing value after 'return'"); return false; }
 
-            // If next token starts with a digit it's the code, else default 302
             const std::string &first = current();
             bool looksLikeCode = !first.empty() &&
                 std::isdigit(static_cast<unsigned char>(first[0]));

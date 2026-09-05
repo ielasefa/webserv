@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secondary Webserv</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #07111f;
+    --panel: rgba(12, 18, 34, 0.9);
+    --panel-soft: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.1);
+    --text: #f5f7fb;
+    --muted: rgba(245, 247, 251, 0.7);
+    --accent: #f59e0b;
+    --accent-soft: rgba(245, 158, 11, 0.16);
+    --good: #5eead4;
+    --radius-xl: 26px;
+    --radius-lg: 18px;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(245, 158, 11, 0.18), transparent 24%),
+      radial-gradient(circle at 86% 12%, rgba(94, 234, 212, 0.1), transparent 20%),
+      linear-gradient(135deg, #060b15 0%, #0b1324 55%, #060b15 100%);
+  }
+
+  .shell {
+    width: min(1080px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0 40px;
+  }
+
+  .hero,
+  .card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--panel);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(18px);
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 30px;
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: -70px -50px auto auto;
+    width: 240px;
+    height: 240px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 68%);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  h1 {
+    margin: 14px 0 10px;
+    font-size: clamp(2.3rem, 5vw, 4.8rem);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+  }
+
+  p {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .pill,
+  .button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .pill {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .pill.primary {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(251, 191, 36, 0.92));
+    color: #111827;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .card {
+    padding: 22px;
+    border-radius: var(--radius-lg);
+    background: var(--panel-soft);
+  }
+
+  .card h2 {
+    margin: 0 0 10px;
+    font-size: 1.03rem;
+  }
+
+  .card p {
+    max-width: none;
+  }
+
+  .meta {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .row strong {
+    font-size: 0.92rem;
+  }
+
+  .row span {
+    color: var(--muted);
+    text-align: right;
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 920px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .shell {
+      width: min(100% - 20px, 1080px);
+      padding: 16px 0 28px;
+    }
+
+    .hero,
+    .card {
+      border-radius: 20px;
+    }
+
+    .hero {
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <span class="eyebrow">Secondary host</span>
+      <h1>8083 is live now.</h1>
+      <p>
+        This server block now serves a real document root instead of falling into a missing-path 404.
+        Use it as a lightweight alternate host for testing and comparisons.
+      </p>
+      <div class="actions">
+        <a class="pill primary" href="/">Back to main site</a>
+        <span class="pill">Listen: 127.0.0.1:8083</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Server</h2>
+        <p>Secondary listener configured in file.config.</p>
+        <div class="meta">
+          <div class="row"><strong>Server name</strong><span>webserv_secondary</span></div>
+          <div class="row"><strong>Port</strong><span>8083</span></div>
+          <div class="row"><strong>Autoindex</strong><span>on</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Purpose</h2>
+        <p>Kept intentionally simple so the browser always has something valid to render on this port.</p>
+        <div class="meta">
+          <div class="row"><strong>Root</strong><span>./www/secondary</span></div>
+          <div class="row"><strong>Index</strong><span>index.html</span></div>
+          <div class="row"><strong>Status</strong><span style="color: var(--good);">Ready</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Notes</h2>
+        <p>If you want, this can later be turned into a dedicated comparison page for host routing tests.</p>
+        <div class="meta">
+          <div class="row"><strong>Use case</strong><span>Host / port verification</span></div>
+          <div class="row"><strong>Fallback</strong><span>Static page</span></div>
+          <div class="row"><strong>Target</strong><span>Browser-safe</span></div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
