@@ -92,8 +92,6 @@ bool is_bodyComplete(t_client &c)
 		
 			return false;
 		}
-		// if (len == 0)
-			// return c.req_buffer.find("\r\n", current) != std::string::npos;
 
 		if (c.req_buffer.size() < current + len + 2)
 			break ;

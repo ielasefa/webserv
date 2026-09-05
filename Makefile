@@ -21,22 +21,24 @@ SRC = webserv.cpp \
       src/init/request_utils.cpp \
       src/init/epoll_utils.cpp
 
-OBJ = $(SRC:.cpp=.o)
+OBJ_DIR = obj
+
+OBJ = $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
 	$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
 
-%.o: %.cpp
+$(OBJ_DIR)/%.o: %.cpp
+	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ)
+	rm -rf $(OBJ_DIR)
 
 fclean: clean
 	rm -f $(NAME)
-	rm -f test_config_parser test_integration
 
 re: fclean all
 

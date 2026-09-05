@@ -1,16 +1,10 @@
 #include "webserv.hpp"
 
-const int   BACKLOG             = 128;
-const int   POLL_TIMEOUT_MS     = -1;
-const int   CGI_TIMEOUT_S       = 10;
-const char *DEFAULT_CONFIG_PATH = "webserv.conf";
-const int   READ_BUFFER_SIZE    = 4096;
-
 int main(int argc, char *argv[])
 {
 	signal(SIGPIPE, SIG_IGN);
 
-	std::string config_path = DEFAULT_CONFIG_PATH;
+	std::string config_path = "webserv.conf";
 	
 	if (argc > 2)
 	{

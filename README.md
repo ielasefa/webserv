@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by iel-asef.*
+*This project has been created as part of the 42 curriculum by iel-asef, aboukent and jaloulid*
 
 # Description
 This project is a custom HTTP server written in C++98. It parses a web server configuration file, listens on one or more ports, and serves static files, directory listings, uploads, redirects, error pages, CGI scripts, and basic HTTP methods such as GET, POST, HEAD, and DELETE.
@@ -25,7 +25,7 @@ make re
 Run the server with a configuration file:
 
 ```bash
-./webserv server.conf
+./webserv file.conf
 ```
 
 Other example configurations are available in the repository, such as `web.conf`.
@@ -43,11 +43,9 @@ The configuration parser in this project uses `#` for comments. The provided con
 # Resources
 Reference material used while developing and documenting this project:
 
-- MDN Web Docs: HTTP overview and request/response basics
-- RFC 9110: HTTP Semantics
-- RFC 9112: HTTP/1.1
-- RFC 3875: CGI 1.1
+- https://en.wikipedia.org/wiki/Common_Gateway_Interface
+- https://nginx.org/en/docs
 - cppreference.com: C++ language and standard library reference
 
 ## AI Usage
-AI was used to help draft and structure this README, summarize the build and execution commands from the Makefile and configuration files, and verify that the documentation matches the current repository layout. AI was not used to implement the server itself.
+Ai helped us to understand the concepts and in debugging, and it was not used to implement the server itself.

@@ -193,19 +193,6 @@ std::string CGIHandler::wrapResponse(const std::string &cgi_output)
                                body.size()) + body;
 }
 
-std::string CGIHandler::getBody() const
-{
-    return _request.body;
-}
-
-void CGIHandler::releaseBody(std::string &body)
-{
-    std::string old_body;
-
-    body.swap(old_body);
-    body.swap(_request.body);
-}
-
 bool CGIHandler::startCGI(int &fd_in, int &fd_out, pid_t &pid)
 {
     if (_request.headers.count("Transfer-Encoding"))

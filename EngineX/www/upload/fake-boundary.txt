@@ -1,4 +1,0 @@
-line-1: begin upload
-line-2: fake token starts here -> 
---FakeBodyBoundaryFAKE <- continues but is not delimiter
-line-3: parser must ignore fake boundary text

@@ -50,15 +50,12 @@ void	checking_timout(int epfd, std::map<int, t_client> &clients,
 			write(fd, response.c_str(), response.size());
 			removing_client(epfd, fd, clients);
 			it = clients.begin();
-
-			std::cout << "cgi client removed\n";
 		}
 		else if (now - it->second.timing > 30)
 		{
 			int fd = it->first;
 			it++;
 			removing_client(epfd, fd, clients);
-			std::cout << "client removed\n";
 		}
 		else
 			it++;
@@ -250,7 +247,6 @@ void	handling_write(int epfd, int fd, std::map<int, t_client> &clients)
 		
 			switching_toEPOLLIN(epfd, fd);
 		}
-			// removing_client(epfd, fd, clients);
 	}
 	else if (len < 0)
 		std::cerr << "Error: failure in write()" << std::endl;
